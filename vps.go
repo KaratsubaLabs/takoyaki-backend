@@ -11,21 +11,23 @@ const (
     RAM_HIGH   = 2048
 )
 
-type osInfo struct {
-    ImageFile     string
-}
-
-const osOptions = map[string]osInfo{
-    'ubuntu':    osInfo{ImageFile: "ubuntu-server.img"}
-}
-
 type VPSConfig struct {
+    DisplayName   string
     Hostname      string
     Username      string
     Password      string
     SSHKey        string
     RAM           int // make this 'enum' or sm
+    CPU           int
     OS            string
+}
+
+type OSInfo struct {
+    ImageFile     string
+}
+
+const OSOptions = map[string]osInfo{
+    'ubuntu':    osInfo{ImageFile: "ubuntu-server.img"}
 }
 
 func VPSCreate(config VPSConfig) {
