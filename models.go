@@ -6,6 +6,11 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+const (
+	REQUEST_PURPOSE_ACCOUNT = 0
+	REQUEST_PURPOSE_VPSCREATE = 1
+)
+
 type User struct {
 	gorm.Model
 	Username       string

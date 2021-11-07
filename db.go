@@ -41,3 +41,11 @@ func GetVPS(tsx *gorm.DB) {
 
 }
 
+func CreateVPS(tsx *gorm.DB) {
+
+}
+
+func DestroyVPS(tsx *gorm.DB) {
+
+}
+

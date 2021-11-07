@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  api:
+    depends_on:
+      - db
+    build: ./
+    environment:
+      - PORT=$API_PORT
+    ports:
+      - $API_PORT:$API_PORT
+
+  db:
+    image: postgres:13.1
+    environment:
+      - POSTGRES_USER=$DB_USER
+      - POSTGRES_PASSWORD=$DB_PASSWORD
+    ports:
+      - $DB_PORT:$DB_PORT
+    volumes:
+      - ./db/data:/var/lib/postgresql/data
+    restart: always
+    command: -p $DB_PORT

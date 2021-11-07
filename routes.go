@@ -16,7 +16,7 @@ func infoVPSHandler(w http.ResponseWriter, r *http.Request) {
 func createVPSHandler(w http.ResponseWriter, r *http.Request) {
 }
 
-func deleteVPSHandler(w http.ResponseWriter, r *http.Request) {
+func destroyVPSHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func Routes(mux *http.ServeMux) {
