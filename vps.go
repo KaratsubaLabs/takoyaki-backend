@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "os"
+    _ "os"
 )
 
 const (
@@ -26,8 +26,8 @@ type OSInfo struct {
     ImageFile     string
 }
 
-const OSOptions = map[string]osInfo{
-    'ubuntu':    osInfo{ImageFile: "ubuntu-server.img"}
+var OSOptions = map[string]OSInfo{
+    "ubuntu":    OSInfo{ImageFile: "ubuntu-server.img"},
 }
 
 func VPSCreate(config VPSConfig) {
@@ -60,23 +60,21 @@ func VPSCreate(config VPSConfig) {
 
     cmd := []string{
         "genisoimage", "-output", cidataLocation, "-V",
-        "cidata", "-r", "-J", userdataLocation, metadataLocation
+        "cidata", "-r", "-J", userdataLocation, metadataLocation,
     }
 
     // create disk image
 
     // create the vm
     cmd = []string{
-        "virt-install"
+        "virt-install",
     }
+
+    _ = cmd
 
 }
 
 func VPSDelete() {
-
-    cmd := []string{
-
-    }
 
 }
 

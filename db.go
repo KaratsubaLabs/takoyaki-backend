@@ -1,8 +1,10 @@
 package main
 
 import (
+    "fmt"
+
 	"gorm.io/gorm"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 )
 
 type PostgresConnection struct {
@@ -23,7 +25,8 @@ func StartDB() {
 		ConnectionSecrets.Password,
 		ConnectionSecrets.DBName,
 	)
-	db, err := gorm.Open(postgres.Open(), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
+    _ = err
 
 	db.AutoMigrate(
 		&User{},

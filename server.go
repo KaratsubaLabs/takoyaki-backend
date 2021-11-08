@@ -1,7 +1,7 @@
 package main
 
 import (
-    _ "fmt"
+    "fmt"
     "net/http"
 )
 
@@ -13,7 +13,7 @@ func main() {
     Routes(mux)
 
     fmt.Printf("Listening on port %s\n", port)
-    http.ListenAndServe(port, handler)
+    http.ListenAndServe(port, mux)
 
 }
 
