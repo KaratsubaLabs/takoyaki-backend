@@ -19,6 +19,7 @@ type VPSConfig struct {
     SSHKey        string
     RAM           int // make this 'enum' or sm
     CPU           int
+    STORAGE       int
     OS            string
 }
 
@@ -34,6 +35,8 @@ func VPSCreate(config VPSConfig) {
 
     // TODO do some validation on config to make sure there is no
     // script injection or insane settings going on
+
+    // check if vm already exists
 
     // generate user-data and meta-data files
     fmt.Sprintf(`
@@ -68,13 +71,24 @@ func VPSCreate(config VPSConfig) {
     // create the vm
     cmd = []string{
         "virt-install",
+            // "--connect=qemu:///system",
+            // "--name=" + config.Hostname,
+            // "--memory=" + config.RAM,
+            // "--vcpus=" + config.CPU,
+            // "--boot uefi",
     }
 
     _ = cmd
 
 }
 
-func VPSDelete() {
+// possibly keep user data for recovery for a set amout of time
+func VPSDestroy() {
+
+}
+
+// when a user requests for vps specs to be upgraded
+func VPSModify() {
 
 }
 

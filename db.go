@@ -2,53 +2,58 @@ package main
 
 import (
     "fmt"
+    "os"
 
 	"gorm.io/gorm"
 	"gorm.io/driver/postgres"
 )
 
-type PostgresConnection struct {
-	Host       string
-	Port       int
-	User       string
-	Password   string
-	DBName     string
-}
-
-func StartDB() {
+func DBConnection() (*gorm.DB, error) {
 
 	connectionString := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		ConnectionSecrets.Host,
-		ConnectionSecrets.Port,
-		ConnectionSecrets.User,
-		ConnectionSecrets.Password,
-		ConnectionSecrets.DBName,
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_NAME"),
 	)
 	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
-    _ = err
+    if err != nil { return nil, err }
 
-	db.AutoMigrate(
+    return db, nil
+
+}
+
+func DBMigrate(db *gorm.DB) error {
+
+    tsx := db.Begin()
+    defer tsx.RollbackUnlessCommitted()
+
+    err := tsx.AutoMigrate(
 		&User{},
 		&VPS{},
 		&Request{},
 	)
+    if err != nil { return err }
+
+    return tsx.Commit().Error
 
 }
 
-func RegisterUser(tsx *gorm.DB) {
+func RegisterUser(db *gorm.DB) {
 
 }
 
-func GetVPS(tsx *gorm.DB) {
+func GetVPS(db *gorm.DB) {
 
 }
 
-func CreateVPS(tsx *gorm.DB) {
+func CreateVPS(db *gorm.DB) {
 
 }
 
-func DestroyVPS(tsx *gorm.DB) {
+func DestroyVPS(db *gorm.DB) {
 
 }
 
