@@ -41,19 +41,29 @@ func DBMigrate(db *gorm.DB) error {
 
 }
 
-func RegisterUser(db *gorm.DB) {
+func DBUserRegister(db *gorm.DB, user User) error {
+    tsx := db.Begin()
+    defer tsx.RollbackUnlessCommitted()
+
+	err := tsx.Create(&user)
+	if err != nil { return err }
+
+    return tsx.Commit().Error
+}
+
+func DBUserCheckCreds(db *gorm.DB) (bool, error) {
 
 }
 
-func GetVPS(db *gorm.DB) {
+func DBVPSGetInfo(db *gorm.DB) {
 
 }
 
-func CreateVPS(db *gorm.DB) {
+func DBVPSCreate(db *gorm.DB) {
 
 }
 
-func DestroyVPS(db *gorm.DB) {
+func DBVPSDestroy(db *gorm.DB) {
 
 }
 
