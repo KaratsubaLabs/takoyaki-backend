@@ -17,14 +17,6 @@ func RestrictMethod(method string, next http.Handler) http.Handler {
     })
 }
 
-func RestrictMethodGet(next http.Handler) http.Handler {
-	return RestrictMethod("GET", next)
-}
-
-func RestrictMethodPost(next http.Handler) http.Handler {
-	return RestrictMethod("POST", next)
-}
-
 // checks auth
 func RestrictAuth(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
