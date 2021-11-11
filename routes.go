@@ -48,13 +48,13 @@ type registerRequest struct {
 func registerHandler(w http.ResponseWriter, r *http.Request) error {
 
 	// (possibly have db connection be part of the context)
-	// db, err := DBConnection()
-	// if err != nil {
-	// 	return http.StatusInternalServerError, nil
-	// }
-	// defer db.Close()
-    return nil
+	db, err := DBConnection()
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+	defer db.Close()
 
+    return nil
 }
 
 type loginRequest struct {

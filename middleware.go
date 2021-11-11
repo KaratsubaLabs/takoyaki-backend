@@ -8,7 +8,15 @@ import (
 // takes in our custom handler and converts to http.Handler
 func ErrorMiddleware(handler CustomHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handler(w, r)
+		err := handler(w, r)
+		if err != nil {
+			switch e := err.(type) {
+			case HTTPError:
+				http.Error(w, e.Error(), e.Status())
+			default:
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+		}
 	})
 }
 
