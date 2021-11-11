@@ -1,24 +1,30 @@
 package main
 
 import (
-	"fmt"
 	"context"
     "net/http"
 )
 
+// takes in our custom handler and converts to http.Handler
+func ErrorMiddleware(handler CustomHandler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler(w, r)
+	})
+}
+
 // allows only one type of method to be used on endpoint
-func RestrictMethod(method string, next http.Handler) http.Handler {
+func RestrictMethodMiddleware(methods []string, next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        if r.Method != method {
+		if !ContainsString(methods, r.Method) {
             w.WriteHeader(http.StatusMethodNotAllowed)
             return
-        }
+		}
         next.ServeHTTP(w, r)
     })
 }
 
 // checks auth
-func RestrictAuth(next http.Handler) http.Handler {
+func AuthMiddleware(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
         accessToken := r.Header.Get("x-access-token")
