@@ -1,6 +1,7 @@
 package main
 
 import (
+	"json"
 	"context"
     "net/http"
 )
@@ -17,6 +18,27 @@ func ErrorMiddleware(handler CustomHandler) http.Handler {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
 		}
+	})
+}
+
+// parses body as json
+func ParseBodyJSONMiddleware(bodySchema interface{}, next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+
+		err := dec.Decode(&bodySchema)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+        ctx := r.Context()
+        ctx = context.WithValue(ctx, "parsedBody", bodySchema)
+        r = r.WithContext(ctx)
+
+        next.ServeHTTP(w, r)
 	})
 }
 

@@ -5,7 +5,7 @@ type HTTPError interface {
 	Status() int
 }
 
-type HTTPStatusError inteface {
+type HTTPStatusError struct {
 	Code        int
 	Err         error
 }
@@ -14,6 +14,6 @@ func (se HTTPStatusError) Error() string {
 	return se.Err.Error()
 }
 
-func (set HTTPStatusError) Status() int {
+func (se HTTPStatusError) Status() int {
 	return se.Code
 }

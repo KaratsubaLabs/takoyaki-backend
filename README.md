@@ -31,8 +31,8 @@ $ sudo rm -rf db/data/
 ## TODO
 
 - [ ] database initialization migration (+ shell interface to init db)
-- [ ] validation for requests (as a middleware if possible)
-- [ ] possibly error middleware
+- [x] validation for requests (as a middleware if possible)
+- [x] possibly error middleware
 - [ ] figure out where to put temp files (cidata.iso etc) for when creating vps
-- [ ] jwt auth
+- [x] jwt auth
 
