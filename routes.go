@@ -19,8 +19,9 @@ func (info routeInfo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var handlerWithMiddleware http.Handler = ErrorMiddleware(info.handlerFn)
 
-    // parse body (if applicable)
+    // validate + parse body (if applicable)
     if info.bodySchema != nil {
+		handlerWithMiddleware = ValidationMiddleware(handlerWithMiddleware)
         handlerWithMiddleware = ParseBodyJSONMiddleware(info.bodySchema, handlerWithMiddleware)
     }
 
@@ -48,9 +49,9 @@ var routeSchema = []routeInfo{
 }
 
 type registerRequest struct {
-	Username      string
-	Password      string
-	Email         string
+	Username      string         `json:"username"`
+	Password      string         `json:"password"`
+	Email         string         `json:"email"`
 }
 func registerHandler(w http.ResponseWriter, r *http.Request) error {
 

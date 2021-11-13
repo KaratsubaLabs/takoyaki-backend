@@ -1,9 +1,21 @@
 package main
 
 import (
-	"json"
 	"context"
     "net/http"
+	"encoding/json"
+
+	"github.com/go-playground/validator/v10"
+)
+
+type contextKey string
+func (c contextKey) String() string {
+	return "takoyaki:contextKey:" + string(c)
+}
+
+var (
+	contextKeyUserID     = contextKey("userid")
+	contextKeyParsedBody = contextKey("parsedbody")
 )
 
 // takes in our custom handler and converts to http.Handler
@@ -21,6 +33,26 @@ func ErrorMiddleware(handler CustomHandler) http.Handler {
 	})
 }
 
+// validate body (must be used after ParseBodyJsonMiddleware
+func ValidationMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		parsedBody, ok := r.Context().Value(contextKeyParsedBody).(interface{})
+		if !ok {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err := validate.Struct(parsedBody)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+        next.ServeHTTP(w, r)
+	})
+}
+
 // parses body as json
 func ParseBodyJSONMiddleware(bodySchema interface{}, next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +67,7 @@ func ParseBodyJSONMiddleware(bodySchema interface{}, next http.Handler) http.Han
 		}
 
         ctx := r.Context()
-        ctx = context.WithValue(ctx, "parsedBody", bodySchema)
+        ctx = context.WithValue(ctx, contextKeyParsedBody, bodySchema)
         r = r.WithContext(ctx)
 
         next.ServeHTTP(w, r)
@@ -66,7 +98,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
         }
 
         ctx := r.Context()
-        ctx = context.WithValue(ctx, "userid", id)
+        ctx = context.WithValue(ctx, contextKeyUserID, id)
         r = r.WithContext(ctx)
 
         next.ServeHTTP(w, r)
