@@ -26,32 +26,30 @@ func DBConnection() (*gorm.DB, error) {
 }
 
 func DBMigrate(db *gorm.DB) error {
+	return db.Transaction(func(tsx *gorm.DB) error {
 
-    tsx := db.Begin()
-    defer tsx.RollbackUnlessCommitted()
+		err := tsx.AutoMigrate(
+			&User{},
+			&VPS{},
+			&Request{},
+		)
+		if err != nil { return err }
 
-    err := tsx.AutoMigrate(
-		&User{},
-		&VPS{},
-		&Request{},
-	)
-    if err != nil { return err }
-
-    return tsx.Commit().Error
-
+		return nil
+	})
 }
 
 func DBUserRegister(db *gorm.DB, user User) error {
-    tsx := db.Begin()
-    defer tsx.RollbackUnlessCommitted()
+	return db.Transaction(func(tsx *gorm.DB) error {
 
-	err := tsx.Create(&user)
-	if err != nil { return err }
+		err := tsx.Create(&user).Error
+		if err != nil { return err }
 
-    return tsx.Commit().Error
+		return nil
+	})
 }
 
-func DBUserCheckCreds(db *gorm.DB) (bool, error) {
+func DBUserCheckCreds(db *gorm.DB) {
 
 }
 

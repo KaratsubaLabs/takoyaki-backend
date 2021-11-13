@@ -5,6 +5,16 @@ import (
 	_ "encoding/json"
 )
 
+type ContextKey string
+func (c ContextKey) String() string {
+	return "takoyaki:contextKey:" + string(c)
+}
+
+var (
+	ContextKeyUserID     = ContextKey("userid")
+	ContextKeyParsedBody = ContextKey("parsedbody")
+)
+
 type CustomHandler = func(http.ResponseWriter, *http.Request) error
 
 type routeInfo struct {
@@ -55,12 +65,26 @@ type registerRequest struct {
 }
 func registerHandler(w http.ResponseWriter, r *http.Request) error {
 
+	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(registerRequest)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
 	// (possibly have db connection be part of the context)
 	db, err := DBConnection()
 	if err != nil {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
-	defer db.Close()
+
+	newUser := User{
+		Username: parsedBody.Username,
+		Password: parsedBody.Password,
+		Email:    parsedBody.Email,
+	}
+	err = DBUserRegister(db, newUser)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
 
     return nil
 }

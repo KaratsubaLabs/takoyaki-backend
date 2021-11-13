@@ -3,6 +3,28 @@
 
 go backend for からつばLABS's **project takoyaki** - the vps platform.
 
+## RUNNING FOR DEVELOPMENT
+
+If you wish to run **takoyaki** without having to keep building docker
+containers, you can run it locally instead. Make sure you have a working go
+installation.
+
+Make your own copy of `.env` by copying the provided `dotenv.example`
+file.
+```
+$ cp dotenv.example .env
+```
+
+Install packages
+```
+$ go mod download
+```
+
+Run takoyaki
+```
+$ go run *.go
+```
+
 ## RUNNING ALL CONTAINERS
 
 To be able to run the stack, **docker** and **docker-compose** are required.
@@ -35,4 +57,8 @@ $ sudo rm -rf db/data/
 - [x] possibly error middleware
 - [ ] figure out where to put temp files (cidata.iso etc) for when creating vps
 - [x] jwt auth
+- [ ] possibly create db struct so methods can all be namespaced
+- [ ] look at database transactions (+ are they really needed)
+- [ ] write the routes
+- [ ] add tests? (might be overkill + annoying)
 
