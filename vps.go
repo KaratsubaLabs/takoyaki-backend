@@ -19,17 +19,20 @@ type VPSConfig struct {
     SSHKey        string
     RAM           int // make this 'enum' or sm
     CPU           int
-    STORAGE       int
+    Disk          int
     OS            string
 }
 
 type OSInfo struct {
     ImageFile     string
+	OSVariant     string
 }
 
 var OSOptions = map[string]OSInfo{
-    "ubuntu":    OSInfo{ImageFile: "ubuntu-server.img"},
+	"ubuntu":    OSInfo{ImageFile: "ubuntu-server.img", OSVariant: "ubuntu20.04"},
 }
+
+const VolumePoolName = "vps"
 
 func VPSCreate(config VPSConfig) {
 
@@ -38,7 +41,22 @@ func VPSCreate(config VPSConfig) {
 
     // check if vm already exists
 
-    // generate user-data and meta-data files
+	// generate random name for vm
+	vmName := RandomString()
+	tempDir := "/tmp/takoyaki/" + vmName
+
+	// create temp dir
+
+	// some vars
+    cidataLocation := tempDir + "cidata.iso"
+    userdataLocation := tempDir + "user-data"
+    metadataLocation := tempDir + "meta-data"
+	volumeName := vmName + "-vol"
+	// make sure config.OS is valid
+	cloudImg := OSOptions[config.OS].ImageFile // also concat image location
+	osVariant := OSOptions[config.OS].OSVariant // determine based on image (full list from osinfo-query os)
+
+    // generate meta-data and user-data files
     fmt.Sprintf(`
         instance-id: %s
         local-hostname: %s
@@ -57,28 +75,40 @@ func VPSCreate(config VPSConfig) {
     `, config.Username, config.SSHKey, config.Password)
 
     // create cidata image (maybe do it in /temp ?)
-    cidataLocation := "cidata.iso"
-    userdataLocation := "user-data"
-    metadataLocation := "meta-data"
 
     cmd := []string{
         "genisoimage", "-output", cidataLocation, "-V",
         "cidata", "-r", "-J", userdataLocation, metadataLocation,
     }
 
-    // create disk image
+    // create volume
+	cmd = []string {
+		"virsh", "-c", "qemu:///system", "vol-create-as",
+		VolumePoolName, volumeName, fmt.Sprintf("%d", config.Disk), "--format", "qcow2",
+	}
+
+	// load cloud image into volume
+	cmd = []string {
+		"virsh", "-c", "qemu:///system", "vol-upload",
+		"--pool", VolumePoolName, volumeName, cloudImg,
+	}
 
     // create the vm
     cmd = []string{
-        "virt-install",
-            // "--connect=qemu:///system",
-            // "--name=" + config.Hostname,
-            // "--memory=" + config.RAM,
-            // "--vcpus=" + config.CPU,
-            // "--boot uefi",
+		"virt-install", "-c", "qemu:///system",
+		"--name=" + vmName,
+		"--boot", "uefi",
+		"--os-variant=", osVariant,
+		"--memory=" + fmt.Sprintf("%d", config.RAM),
+		"--vcpus=" + fmt.Sprintf("%d", config.CPU),
+		"--import",
+		"--disk", "vol=" + VolumePoolName + "/" + volumeName,
+		"--disk", "path=" + cidataLocation + ",device=cdrom",
     }
 
     _ = cmd
+
+	// clean up temp dir
 
 }
 
