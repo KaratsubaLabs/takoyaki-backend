@@ -33,7 +33,8 @@ func ValidationMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		err := validate.Struct(parsedBody)
+		// could make validator a global object (might be a bit more performant)
+		err := validator.New().Struct(parsedBody)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return

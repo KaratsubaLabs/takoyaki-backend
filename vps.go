@@ -21,7 +21,7 @@ type VPSConfig struct {
     SSHKey        string
     RAM           int // make this 'enum' or sm
     CPU           int
-    Disk          int
+    Disk          int // in gb
     OS            string
 }
 
@@ -35,6 +35,26 @@ var OSOptions = map[string]OSInfo{
 }
 
 const VolumePoolName = "vps"
+const CloudImageDir = "/home/pinosaur/Temp/cloud-img"
+
+const MetaDataTemplate =
+`
+instance-id: %s
+local-hostname: %s
+`
+
+const UserDataTemplate =
+`
+#cloud-config
+users:
+  - name: %s
+    ssh_authorized_keys:
+      - %s
+    groups: sudo
+    shell: /bin/bash
+    passwd: %s
+    lock_passwd: false
+`
 
 func writeToFile(filepath string, content string) error {
 
@@ -57,7 +77,7 @@ func runCommand(args []string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Wait()
+	err := cmd.Run()
 	if err != nil { return err }
 
 	return nil
@@ -78,6 +98,7 @@ func VPSCreate(config VPSConfig) error {
 	tempDir, err := os.MkdirTemp("", "takoyaki-*")
 	if err != nil { return err }
 
+	fmt.Printf("%s\n", tempDir)
 	defer os.RemoveAll(tempDir)
 
 	// some vars
@@ -86,28 +107,15 @@ func VPSCreate(config VPSConfig) error {
     userdataLocation := filepath.Join(tempDir, "user-data")
 	volumeName := vmName + "-vol"
 	// make sure config.OS is valid
-	cloudImg := OSOptions[config.OS].ImageFile // also concat image location
+	cloudImg := filepath.Join(CloudImageDir, OSOptions[config.OS].ImageFile)
 	osVariant := OSOptions[config.OS].OSVariant // determine based on image (full list from osinfo-query os)
 
     // generate meta-data and user-data files
-	metadataFile := fmt.Sprintf(`
-        instance-id: %s
-        local-hostname: %s
-    `, config.Hostname, config.Hostname)
+	metadataFile := fmt.Sprintf(MetaDataTemplate, config.Hostname, config.Hostname)
 	err = writeToFile(metadataLocation, metadataFile)
 	if err != nil { return err }
 
-	userdataFile := fmt.Sprintf(`
-        #cloud-config
-        users:
-          - name: %s
-            ssh_authorized_keys:
-              - %s
-            groups: sudo
-            shell: /bin/bash
-            passwd: %s
-            lock_passwd: false
-    `, config.Username, config.SSHKey, config.Password)
+	userdataFile := fmt.Sprintf(UserDataTemplate, config.Username, config.SSHKey, config.Password)
 	err = writeToFile(userdataLocation, userdataFile)
 	if err != nil { return err }
 
@@ -120,7 +128,7 @@ func VPSCreate(config VPSConfig) error {
     // create volume
 	cmd = []string {
 		"virsh", "-c", "qemu:///system", "vol-create-as",
-		VolumePoolName, volumeName, fmt.Sprintf("%d", config.Disk), "--format", "qcow2",
+		VolumePoolName, volumeName, fmt.Sprintf("%dG", config.Disk), "--format", "qcow2",
 	}
 	if err := runCommand(cmd); err != nil { return err }
 
@@ -133,15 +141,18 @@ func VPSCreate(config VPSConfig) error {
 
     // create the vm
     cmd = []string{
-		"virt-install", "-c", "qemu:///system",
+		"virt-install",
+		"--connect", "qemu:///system",
 		"--name=" + vmName,
 		"--boot", "uefi",
-		"--os-variant=", osVariant,
+		"--os-variant=" + osVariant,
 		"--memory=" + fmt.Sprintf("%d", config.RAM),
 		"--vcpus=" + fmt.Sprintf("%d", config.CPU),
 		"--import",
 		"--disk", "vol=" + VolumePoolName + "/" + volumeName,
 		"--disk", "path=" + cidataLocation + ",device=cdrom",
+		"--graphics", "vnc,port=5911,listen=127.0.0.1", // get rid of this later
+		"--noautoconsole",
     }
 	if err := runCommand(cmd); err != nil { return err }
 
