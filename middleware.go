@@ -51,14 +51,15 @@ func ParseBodyJSONMiddleware(bodySchema interface{}, next http.Handler) http.Han
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 
-		err := dec.Decode(&bodySchema)
+		parsedBody := bodySchema
+		err := dec.Decode(&parsedBody)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
         ctx := r.Context()
-        ctx = context.WithValue(ctx, ContextKeyParsedBody, bodySchema)
+        ctx = context.WithValue(ctx, ContextKeyParsedBody, parsedBody)
         r = r.WithContext(ctx)
 
         next.ServeHTTP(w, r)

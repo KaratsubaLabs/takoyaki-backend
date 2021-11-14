@@ -59,8 +59,29 @@ var routeSchema = []routeInfo{
 		route: "/register",
 		methods: []string{"POST"},
 		authRoute: false,
-		bodySchema: registerRequest{},
+		bodySchema: &registerRequest{},
 		handlerFn: registerHandler,
+	},
+	{
+		route: "/vps/info",
+		methods: []string{"POST"},
+		authRoute: false,
+		bodySchema: &vpsInfoRequest{},
+		handlerFn: vpsInfoHandler,
+	},
+	{
+		route: "/vps/create",
+		methods: []string{"POST"},
+		authRoute: false,
+		bodySchema: &vpsCreateRequest{},
+		handlerFn: vpsCreateHandler,
+	},
+	{
+		route: "/vps/delete",
+		methods: []string{"POST"},
+		authRoute: false,
+		bodySchema: &vpsDeleteRequest{},
+		handlerFn: vpsDeleteHandler,
 	},
 }
 
@@ -94,7 +115,7 @@ type registerRequest struct {
 }
 func registerHandler(w http.ResponseWriter, r *http.Request) error {
 
-	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(registerRequest)
+	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*registerRequest)
 	if !ok {
         return HTTPStatusError{http.StatusInternalServerError, nil}
 	}
@@ -119,20 +140,41 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type loginRequest struct {
-	Username      string
-	Password      string
-	Email         string
+	Username      string         `json:"username"`
+	Password      string         `json:"password"`
 }
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-}
-
-func infoVPSHandler(w http.ResponseWriter, r *http.Request) {
+func loginHandler(w http.ResponseWriter, r *http.Request) error {
+	return nil
 }
 
-func createVPSHandler(w http.ResponseWriter, r *http.Request) {
+type vpsInfoRequest struct {
+	VPSName      string          `json:"vps_name"`
+}
+func vpsInfoHandler(w http.ResponseWriter, r *http.Request) error {
+	return nil
 }
 
-func destroyVPSHandler(w http.ResponseWriter, r *http.Request) {
+// or just use the VPSConfig struct directly
+type vpsCreateRequest struct {
+	DisplayName   string         `json:"display_name"`
+	Hostname      string         `json:"hostname"`
+	Username      string         `json:"username"`
+	Password      string         `json:"password"`
+	SSHKey        string         `json:"ssh_key"`
+	RAM           int            `json:"ram"`
+	CPU           int            `json:"cpu"`
+	Disk          int            `json:"disk"`
+	OS            string         `json:"os"`
+}
+func vpsCreateHandler(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+type vpsDeleteRequest struct {
+	VPSName      string          `json:"vps_name"`
+}
+func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
+	return nil
 }
 
 func Routes(mux *http.ServeMux) {
