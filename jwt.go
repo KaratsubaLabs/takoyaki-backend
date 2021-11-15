@@ -11,11 +11,11 @@ var JWTLifetime = 4096
 var JWTSecret = os.Getenv("JWT_SECRET")
 
 type Claims struct {
-    UserID int
+    UserID uint
     jwt.StandardClaims
 }
 
-func GenerateToken(id int) (string, error) {
+func GenerateToken(id uint) (string, error) {
 
     expire := time.Now().Add(time.Duration(JWTLifetime) * time.Minute)
     claims := &Claims{
@@ -26,12 +26,15 @@ func GenerateToken(id int) (string, error) {
     }
 
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    tokenString, err := token.SignedString(JWTSecret)
+    tokenString, err := token.SignedString([]byte(JWTSecret))
+    if err != nil {
+        return "", err
+    }
 
-    return tokenString, err
+    return tokenString, nil
 }
 
-func ValidateToken(tokenString string) (int, error) {
+func ValidateToken(tokenString string) (uint, error) {
 
     claims := &Claims{}
     token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {

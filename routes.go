@@ -2,7 +2,7 @@ package main
 
 import (
     "net/http"
-	_ "encoding/json"
+	"encoding/json"
 )
 
 type ContextKey string
@@ -88,19 +88,29 @@ var routeSchema = []routeInfo{
 // ping endpoint for debug purposes
 func pingHandler(w http.ResponseWriter, r *http.Request) error {
 
-	var newVPS = VPSConfig{
-		DisplayName: "pino-vps",
-		Hostname:    "pino-vps",
-		Username:    "pinosaur",
-		Password:    "$6$rounds=4096$Z7a9LgphTzzWHJbQ$Yp8C0xPXMJhE45/Q7JLo/OoAWODjlCDGH/Zdgb7FUaX5HeGdnYH4XXP13bWZldzDlSndSKSmDWTbot88ZRuJJ1",
-		SSHKey:      "ssh-rsa blah blah",
-		RAM:         RAM_HIGH,
-		CPU:         1,
-		Disk:        25,
-		OS:          "ubuntu",
+	// var newVPS = VPSConfig{
+	// 	DisplayName: "pino-vps",
+	// 	Hostname:    "pino-vps",
+	// 	Username:    "pinosaur",
+	// 	Password:    "$6$rounds=4096$Z7a9LgphTzzWHJbQ$Yp8C0xPXMJhE45/Q7JLo/OoAWODjlCDGH/Zdgb7FUaX5HeGdnYH4XXP13bWZldzDlSndSKSmDWTbot88ZRuJJ1",
+	// 	SSHKey:      "ssh-rsa blah blah",
+	// 	RAM:         RAM_HIGH,
+	// 	CPU:         1,
+	// 	Disk:        25,
+	// 	OS:          "ubuntu",
+	// }
+
+	// err := VPSCreate(newVPS)
+	// if err != nil {
+	// 	return HTTPStatusError{http.StatusInternalServerError, err}
+	// }
+
+	db, err := DBConnection()
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	err := VPSCreate(newVPS)
+	err = DBMigrate(db)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -112,6 +122,9 @@ type registerRequest struct {
 	Username      string         `json:"username"`
 	Password      string         `json:"password"`
 	Email         string         `json:"email"`
+}
+type registerResponse struct {
+    Token         string         `json:"token"`
 }
 func registerHandler(w http.ResponseWriter, r *http.Request) error {
 
@@ -126,15 +139,24 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
+	// maybe encrypt password, could be done on frontend
+
 	newUser := User{
 		Username: parsedBody.Username,
 		Password: parsedBody.Password,
 		Email:    parsedBody.Email,
 	}
-	err = DBUserRegister(db, newUser)
+    userID, err := DBUserRegister(db, newUser)
 	if err != nil {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
+
+	token, err := GenerateToken(userID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+    json.NewEncoder(w).Encode(registerResponse{Token: token})
 
     return nil
 }
@@ -143,7 +165,33 @@ type loginRequest struct {
 	Username      string         `json:"username"`
 	Password      string         `json:"password"`
 }
+type loginResponse struct {
+    Token         string         `json:"token"`
+}
 func loginHandler(w http.ResponseWriter, r *http.Request) error {
+
+	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*loginRequest)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	db, err := DBConnection()
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	userID, err := DBUserCheckCreds(db, parsedBody.Username, parsedBody.Password)
+	if err != nil {
+        return HTTPStatusError{http.StatusUnauthorized, err}
+	}
+
+	token, err := GenerateToken(userID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+    json.NewEncoder(w).Encode(loginResponse{Token: token})
+
 	return nil
 }
 

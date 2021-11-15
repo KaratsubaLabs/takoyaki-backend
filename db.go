@@ -38,18 +38,26 @@ func DBMigrate(db *gorm.DB) error {
 	})
 }
 
-func DBUserRegister(db *gorm.DB, user User) error {
-	return db.Transaction(func(tsx *gorm.DB) error {
+func DBUserRegister(db *gorm.DB, user User) (uint, error) {
 
-		err := tsx.Create(&user).Error
-		if err != nil { return err }
+	err := db.Select("id").Create(&user).Error
+	if err != nil { return 0, err }
 
-		return nil
-	})
+	return user.ID, nil
 }
 
-func DBUserCheckCreds(db *gorm.DB) {
+// returns user id on successful auth
+func DBUserCheckCreds(db *gorm.DB, username string, password string) (uint, error) {
 
+	loginUser := User{}
+	err := db.
+		Select("id").
+		Where("username = ? AND password = ?", username, password).
+		First(&loginUser).
+		Error
+	if err != nil { return 0, err }
+
+	return loginUser.ID, nil
 }
 
 func DBVPSGetInfo(db *gorm.DB) {

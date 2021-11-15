@@ -20,10 +20,17 @@ Install packages
 $ go mod download
 ```
 
+Export environment variables from `.env` file
+```
+$ export $(grep -v '^#' .env | xargs)
+```
+
 Run takoyaki
 ```
 $ go run *.go
 ```
+
+You will also need to have the database container up.
 
 ## RUNNING ALL CONTAINERS
 
