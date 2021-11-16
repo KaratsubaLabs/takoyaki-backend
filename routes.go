@@ -64,23 +64,30 @@ var routeSchema = []routeInfo{
 		handlerFn: registerHandler,
 	},
 	{
-		route: "/vps/info",
+		route: "/login",
 		methods: []string{"POST"},
 		authRoute: false,
+		bodySchema: &loginRequest{},
+		handlerFn: loginHandler,
+	},
+	{
+		route: "/vps/info",
+		methods: []string{"GET"},
+		authRoute: true,
 		bodySchema: &vpsInfoRequest{},
 		handlerFn: vpsInfoHandler,
 	},
 	{
 		route: "/vps/create",
 		methods: []string{"POST"},
-		authRoute: false,
+		authRoute: true,
 		bodySchema: &vpsCreateRequest{},
 		handlerFn: vpsCreateHandler,
 	},
 	{
 		route: "/vps/delete",
 		methods: []string{"POST"},
-		authRoute: false,
+		authRoute: true,
 		bodySchema: &vpsDeleteRequest{},
 		handlerFn: vpsDeleteHandler,
 	},
@@ -140,12 +147,14 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
+	// make sure user name and email are not already taken
+
 	// maybe encrypt password, could be done on frontend
 
 	newUser := User{
 		Username: parsedBody.Username,
-		Password: parsedBody.Password,
 		Email:    parsedBody.Email,
+		Password: parsedBody.Password,
 	}
     userID, err := DBUserRegister(db, newUser)
 	if err != nil {
@@ -200,6 +209,26 @@ type vpsInfoRequest struct {
 	VPSName      string          `json:"vps_name" validate:"required"`
 }
 func vpsInfoHandler(w http.ResponseWriter, r *http.Request) error {
+
+	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	db, err := DBConnection()
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	allUserVPS, err := DBVPSGetInfo(db, userID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	_ = allUserVPS
+
+	// TODO figure out how to store user vps config in db
+
 	return nil
 }
 
@@ -233,7 +262,7 @@ func vpsCreateHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	config := VPSConfig{
+	config := VPSCreateRequestData{
 		DisplayName: parsedBody.DisplayName,
 		Hostname:    parsedBody.Hostname,
 		Username:    parsedBody.Username,
@@ -268,6 +297,13 @@ type vpsDeleteRequest struct {
 	VPSName      string          `json:"vps_name" validate:"required"`
 }
 func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
+
+	// no need to make this a request - just go ahead and delete
+
+	// issue delete commands
+
+	// remove from db
+
 	return nil
 }
 

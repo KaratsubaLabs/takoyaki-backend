@@ -14,18 +14,22 @@ const (
 
 type User struct {
 	gorm.Model
-	Username       string      `gorm:"not null"`
+	Username       string      `gorm:"not null;unique"`
+	Email          string      `gorm:"not null;unique"`
 	Password       string      `gorm:"not null"`
-	Email          string      // maybe remove this?
 }
 
 type VPS struct {
 	gorm.Model
+	DisplayName    string      `gorm:"not null"` // the name the user assigned
 	InternalName   string      `gorm:"not null"` // randomly generated string that is used to by libvirt
 	UserID         uint        `gorm:"not null"`
     User           User        `gorm:"foreignKey:UserID;preload:false"`
-	// VPSConfig      VPSConfig
 	CreationTime   time.Time
+	RAM            int         `gorm:"not null"`
+	CPU            int         `gorm:"not null"`
+	Disk           int         `gorm:"not null"`
+	OS             string      `gorm:"not null"`
 }
 
 type Request struct {
@@ -38,7 +42,7 @@ type Request struct {
 }
 
 // stored as json in db
-type VPSConfig struct {
+type VPSCreateRequestData struct {
     DisplayName   string
     Hostname      string
     Username      string

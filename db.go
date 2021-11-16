@@ -60,8 +60,13 @@ func DBUserCheckCreds(db *gorm.DB, username string, password string) (uint, erro
 	return loginUser.ID, nil
 }
 
-func DBVPSGetInfo(db *gorm.DB) {
+func DBVPSGetInfo(db *gorm.DB, userID uint) ([]*VPS, error) {
 
+	allVPS := []*VPS{}
+	err := db.Where("user_id = ?", userID).Find(&allVPS).Error
+	if err != nil { return nil, err }
+
+	return allVPS, nil
 }
 
 func DBVPSCreate(db *gorm.DB) {
@@ -74,5 +79,9 @@ func DBVPSDestroy(db *gorm.DB) {
 
 func DBRequestCreate(db *gorm.DB, newRequest Request) error {
 	return db.Create(&newRequest).Error
+}
+
+func DBRequestDelete(db *gorm.DB) error {
+	return nil
 }
 

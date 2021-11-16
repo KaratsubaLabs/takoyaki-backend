@@ -72,7 +72,7 @@ func runCommand(args []string) error {
 }
 
 // run these as a go routine since they block
-func VPSCreate(config VPSConfig) error {
+func VPSCreate(config VPSCreateRequestData) error {
 
     // TODO do some validation on config to make sure there is no
     // script injection or insane settings going on
