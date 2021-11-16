@@ -1,6 +1,7 @@
 package main
 
 import (
+	"time"
     "net/http"
 	"encoding/json"
 )
@@ -119,9 +120,9 @@ func pingHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type registerRequest struct {
-	Username      string         `json:"username"`
-	Password      string         `json:"password"`
-	Email         string         `json:"email"`
+    Username      string         `json:"username" validate:"required,min=3,max=32"`
+    Password      string         `json:"password" validate:"required,min=8,max=128"`
+	Email         string         `json:"email"    validate:"required,email"`
 }
 type registerResponse struct {
     Token         string         `json:"token"`
@@ -162,8 +163,8 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type loginRequest struct {
-	Username      string         `json:"username"`
-	Password      string         `json:"password"`
+	Username      string         `json:"username" validate:"required"`
+	Password      string         `json:"password" validate:"required"`
 }
 type loginResponse struct {
     Token         string         `json:"token"`
@@ -196,7 +197,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type vpsInfoRequest struct {
-	VPSName      string          `json:"vps_name"`
+	VPSName      string          `json:"vps_name" validate:"required"`
 }
 func vpsInfoHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
@@ -204,22 +205,67 @@ func vpsInfoHandler(w http.ResponseWriter, r *http.Request) error {
 
 // or just use the VPSConfig struct directly
 type vpsCreateRequest struct {
-	DisplayName   string         `json:"display_name"`
-	Hostname      string         `json:"hostname"`
-	Username      string         `json:"username"`
-	Password      string         `json:"password"`
-	SSHKey        string         `json:"ssh_key"`
-	RAM           int            `json:"ram"`
-	CPU           int            `json:"cpu"`
-	Disk          int            `json:"disk"`
-	OS            string         `json:"os"`
+	DisplayName   string         `json:"display_name" validate:"required,max=128"`
+	Hostname      string         `json:"hostname"     validate:"required,max=128"`
+	Username      string         `json:"username"     validate:"required,max=32"`
+	Password      string         `json:"password"     validate:"required"`
+	SSHKey        string         `json:"ssh_key"      validate:""`
+	RAM           int            `json:"ram"          validate:"required"`
+	CPU           int            `json:"cpu"          validate:"required"`
+	Disk          int            `json:"disk"         validate:"required"`
+	OS            string         `json:"os"           validate:"required"`
+	Message       string         `json:"message"`
 }
 func vpsCreateHandler(w http.ResponseWriter, r *http.Request) error {
+
+	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*vpsCreateRequest)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	db, err := DBConnection()
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	config := VPSConfig{
+		DisplayName: parsedBody.DisplayName,
+		Hostname:    parsedBody.Hostname,
+		Username:    parsedBody.Username,
+		Password:    parsedBody.Password,
+		SSHKey:      parsedBody.SSHKey,
+		RAM:         parsedBody.RAM,
+		CPU:         parsedBody.CPU,
+		Disk:        parsedBody.Disk,
+		OS:          parsedBody.OS,
+	}
+	configJSON, err := json.Marshal(config)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	newRequest := Request{
+		UserID:         userID,
+		RequestTime:    time.Now(),
+		RequestPurpose: REQUEST_PURPOSE_VPS_CREATE,
+		RequestData:    string(configJSON),
+		Message:        parsedBody.Message,
+	}
+	err = DBRequestCreate(db, newRequest)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
 	return nil
 }
 
 type vpsDeleteRequest struct {
-	VPSName      string          `json:"vps_name"`
+	VPSName      string          `json:"vps_name" validate:"required"`
 }
 func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil

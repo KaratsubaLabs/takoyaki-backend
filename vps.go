@@ -13,18 +13,6 @@ const (
     RAM_HIGH   = 2048
 )
 
-type VPSConfig struct {
-    DisplayName   string
-    Hostname      string
-    Username      string
-    Password      string
-    SSHKey        string
-    RAM           int // make this 'enum' or sm
-    CPU           int
-    Disk          int // in gb
-    OS            string
-}
-
 type OSInfo struct {
     ImageFile     string
 	OSVariant     string

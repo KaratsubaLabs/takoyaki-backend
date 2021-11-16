@@ -72,3 +72,7 @@ func DBVPSDestroy(db *gorm.DB) {
 
 }
 
+func DBRequestCreate(db *gorm.DB, newRequest Request) error {
+	return db.Create(&newRequest).Error
+}
+
