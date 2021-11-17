@@ -77,6 +77,22 @@ func DBVPSDestroy(db *gorm.DB) {
 
 }
 
+func DBRequestListWithPurpose(db *gorm.DB, purpose uint) ([]*Request, error) {
+
+	request := []*Request{}
+	err := db.Preload("User").Where("request_purpose = ?", purpose).Find(&request).Error
+
+	return request, err
+}
+
+func DBRequestListUser(db *gorm.DB, userID uint) ([]*Request, error) {
+
+	requests := []*Request{}
+	err := db.Where("user_id = ?", userID).Find(&requests).Error
+
+	return requests, err
+}
+
 func DBRequestCreate(db *gorm.DB, newRequest Request) error {
 	return db.Create(&newRequest).Error
 }

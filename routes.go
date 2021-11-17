@@ -307,6 +307,20 @@ func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+type requestListResponse struct {
+
+}
+func requestListHandler(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func requestDeleteHandler(w http.ResponseWriter, r *http.Request) error {
+
+	// check that user owns the request first
+
+	return nil
+}
+
 func Routes(mux *http.ServeMux) {
 	for _, routeInfo := range routeSchema {
 		mux.Handle(routeInfo.route, routeInfo)

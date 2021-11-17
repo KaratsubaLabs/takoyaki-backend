@@ -2,8 +2,7 @@ package main
 
 import (
 	"time"
-
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 const (
@@ -34,7 +33,8 @@ type VPS struct {
 
 type Request struct {
 	gorm.Model
-    UserID         uint        `gorm:"foreignKey:UserID;preload:false"`
+	UserID         uint        `gorm:"not null"`
+	User           User        `gorm:"foreignKey:UserID;preload:false"`
 	RequestTime    time.Time   `gorm:"not null"`
 	RequestPurpose int         `gorm:"not null"` // this could be enum instead
 	RequestData    string      `gorm:"not null;default:'{}'::JSONB"`
@@ -54,3 +54,8 @@ type VPSCreateRequestData struct {
     OS            string
 }
 
+type VPSUpgradeRequestData struct {
+    RAM           int
+    CPU           int
+    Disk          int
+}
