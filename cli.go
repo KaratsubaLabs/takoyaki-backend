@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"encoding/json"
 	"github.com/urfave/cli/v2"
 )
@@ -143,10 +144,79 @@ func requestListAction(c *cli.Context) error {
 }
 
 func requestApproveAction(c *cli.Context) error {
+
+	db, err := DBConnection()
+	if err != nil {
+        return cli.Exit("Could not establish connection to database", 1)
+	}
+
+	if c.Bool("all") {
+	}
+
+	if c.NArg() != 1 {
+        return cli.Exit("Please pass in only one request ID", 1)
+	}
+
+	requestID, err := strconv.ParseUint(c.Args().Get(0), 10, 64)
+	if err != nil {
+		return cli.Exit("Invalid request ID", 1)
+	}
+
+	userRequest, err := DBRequestByID(db, uint(requestID))
+	if err != nil {
+		return cli.Exit("Error retriving user request", 1)
+	}
+
+	// do what needs to be done based on request type
+	switch userRequest.RequestPurpose {
+	case REQUEST_PURPOSE_VPS_CREATE:
+
+		// parse request data
+		requestData := VPSCreateRequestData{}
+		err = json.Unmarshal([]byte(userRequest.RequestData), &requestData)
+		if err != nil {
+			return cli.Exit("Error parsing request data", 1)
+		}
+
+		// perform the creation
+		err = VPSCreate(requestData)
+		if err != nil {
+			return cli.Exit("Failed creating vm", 1)
+		}
+
+	default:
+		return cli.Exit("Invalid request type", 1)
+	}
+
     return nil
 }
 
 func requestRejectAction(c *cli.Context) error {
+
+	db, err := DBConnection()
+	if err != nil {
+        return cli.Exit("Could not establish connection to database", 1)
+	}
+
+	if c.Bool("all") {
+		err = DBRequestTruncate(db)
+        return cli.Exit("Failed to delete all requests", 1)
+	}
+
+	if c.NArg() != 1 {
+        return cli.Exit("Please pass in only one request ID", 1)
+	}
+
+	requestID, err := strconv.ParseUint(c.Args().Get(0), 10, 64)
+	if err != nil {
+		return cli.Exit("Invalid request ID", 1)
+	}
+
+	err = DBRequestDelete(db, uint(requestID))
+	if err != nil {
+        return cli.Exit("Error deleting request", 1)
+	}
+
     return nil
 }
 

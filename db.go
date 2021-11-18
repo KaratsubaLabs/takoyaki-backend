@@ -93,11 +93,23 @@ func DBRequestListUser(db *gorm.DB, userID uint) ([]*Request, error) {
 	return requests, err
 }
 
+func DBRequestByID(db *gorm.DB, requestID uint) (Request, error) {
+	request := Request{}
+	err := db.Where("id = ?", requestID).First(&request).Error
+
+	return request, err
+}
+
 func DBRequestCreate(db *gorm.DB, newRequest Request) error {
 	return db.Create(&newRequest).Error
 }
 
-func DBRequestDelete(db *gorm.DB) error {
-	return nil
+func DBRequestDelete(db *gorm.DB, requestID uint) error {
+	return db.Delete(&Request{}, requestID).Error
+}
+
+func DBRequestTruncate(db *gorm.DB) error {
+	// gorm will not execute batch delete without a condition
+	return db.Where("1 = 1").Delete(&Request{}).Error
 }
 
