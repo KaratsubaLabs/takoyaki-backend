@@ -4,6 +4,7 @@ import (
 	"time"
     "net/http"
 	"encoding/json"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type ContextKey string
@@ -148,13 +149,24 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// make sure user name and email are not already taken
+	registered, err := DBUserCheckRegistered(db, parsedBody.Username, parsedBody.Email)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+	if registered {
+        return HTTPStatusError{http.StatusConflict, err}
+	}
 
-	// maybe encrypt password, could be done on frontend
+	// hash pass
+	hashed, err := bcrypt.GenerateFromPassword([]byte(parsedBody.Password),  bcrypt.MinCost)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
 
 	newUser := User{
 		Username: parsedBody.Username,
 		Email:    parsedBody.Email,
-		Password: parsedBody.Password,
+		Password: string(hashed),
 	}
     userID, err := DBUserRegister(db, newUser)
 	if err != nil {
@@ -294,11 +306,33 @@ func vpsCreateHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type vpsDeleteRequest struct {
-	VPSName      string          `json:"vps_name" validate:"required"`
+	VPSID    uint   `json:"vps_id" validate:"required"`
 }
 func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 
-	// no need to make this a request - just go ahead and delete
+	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*vpsDeleteRequest)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	db, err := DBConnection()
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	// check that user owns the vps
+	ownsVPS, err := DBUserOwnsVPS(db, userID, parsedBody.VPSID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+	if !ownsVPS {
+        return HTTPStatusError{http.StatusForbidden, nil}
+	}
 
 	// issue delete commands
 
@@ -314,9 +348,39 @@ func requestListHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+type requestDeleteRequest struct {
+	RequestID     uint     `json:"uint" validate:"required"`
+}
 func requestDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 
+	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*requestDeleteRequest)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	db, err := DBConnection()
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
 	// check that user owns the request first
+	ownsRequest, err := DBRequestUserOwns(db, userID, parsedBody.RequestID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+	if !ownsRequest {
+        return HTTPStatusError{http.StatusForbidden, nil}
+	}
+
+	err = DBRequestDelete(db, parsedBody.RequestID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
 
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/driver/postgres"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func DBConnection() (*gorm.DB, error) {
@@ -38,6 +39,10 @@ func DBMigrate(db *gorm.DB) error {
 	})
 }
 
+/* a lot of these methods are very trivial - could just call db methods
+ * directly in the client code
+ */
+
 func DBUserRegister(db *gorm.DB, user User) (uint, error) {
 
 	err := db.Select("id").Create(&user).Error
@@ -51,13 +56,43 @@ func DBUserCheckCreds(db *gorm.DB, username string, password string) (uint, erro
 
 	loginUser := User{}
 	err := db.
-		Select("id").
-		Where("username = ? AND password = ?", username, password).
+		Select("id", "password").
+		Where("username = ?", username).
 		First(&loginUser).
 		Error
 	if err != nil { return 0, err }
 
+	// maybe move the bcrypt stuff into it's own function
+	err = bcrypt.CompareHashAndPassword([]byte(loginUser.Password), []byte(password))
+	if err != nil { return 0, err }
+
 	return loginUser.ID, nil
+}
+
+// check if username or email are already taken (true if not avaliable - possibly bad design)
+func DBUserCheckRegistered(db *gorm.DB, username string, email string) (bool, error) {
+
+	matches := []*User{}
+	err := db.
+		Where("username = ?", username).
+		Or("email = ?", email).
+		Find(&matches).
+		Error
+	if err != nil { return true, err }
+
+	return len(matches) == 0, nil
+}
+
+func DBUserOwnsVPS(db *gorm.DB, userID uint, vpsID uint) (bool, error) {
+
+	matches := []*VPS{}
+	err := db.
+		Where("id = ? AND user_id = ?", vpsID, userID).
+		Find(&matches).
+		Error
+	if err != nil { return false, err }
+
+	return len(matches) != 0, nil
 }
 
 func DBVPSGetInfo(db *gorm.DB, userID uint) ([]*VPS, error) {
@@ -98,6 +133,18 @@ func DBRequestByID(db *gorm.DB, requestID uint) (Request, error) {
 	err := db.Where("id = ?", requestID).First(&request).Error
 
 	return request, err
+}
+
+// did the given user create the request
+func DBRequestUserOwns(db *gorm.DB, userID uint, requestID uint) (bool, error) {
+
+	request := []*Request{}
+	err := db.Where("id = ? AND user_id = ?", requestID, userID).Error
+	if err != nil {
+		return false, err
+	}
+
+	return len(request) != 0, nil
 }
 
 func DBRequestCreate(db *gorm.DB, newRequest Request) error {
