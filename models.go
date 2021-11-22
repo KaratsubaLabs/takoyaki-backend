@@ -29,6 +29,7 @@ type VPS struct {
 	CPU            int         `gorm:"not null"`
 	Disk           int         `gorm:"not null"`
 	OS             string      `gorm:"not null"`
+	// IPAddress      pgtype.Inet `gorm:"type:INET"`
 }
 
 type Request struct {
@@ -37,8 +38,8 @@ type Request struct {
 	User           User        `gorm:"foreignKey:UserID;preload:false"`
 	RequestTime    time.Time   `gorm:"not null"`
 	RequestPurpose int         `gorm:"not null"` // this could be enum instead
-	RequestData    string      `gorm:"not null;default:'{}'::JSONB"`
-    Message        string
+	RequestData    string      `gorm:"not null;type:JSONB;default:'{}'"`
+	Message        string
 }
 
 // stored as json in db

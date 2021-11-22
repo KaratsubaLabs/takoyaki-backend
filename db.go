@@ -72,7 +72,7 @@ func DBUserCheckCreds(db *gorm.DB, username string, password string) (uint, erro
 // check if username or email are already taken (true if not avaliable - possibly bad design)
 func DBUserCheckRegistered(db *gorm.DB, username string, email string) (bool, error) {
 
-	matches := []*User{}
+	matches := []User{}
 	err := db.
 		Where("username = ?", username).
 		Or("email = ?", email).
@@ -85,7 +85,7 @@ func DBUserCheckRegistered(db *gorm.DB, username string, email string) (bool, er
 
 func DBUserOwnsVPS(db *gorm.DB, userID uint, vpsID uint) (bool, error) {
 
-	matches := []*VPS{}
+	matches := []VPS{}
 	err := db.
 		Where("id = ? AND user_id = ?", vpsID, userID).
 		Find(&matches).
@@ -95,9 +95,9 @@ func DBUserOwnsVPS(db *gorm.DB, userID uint, vpsID uint) (bool, error) {
 	return len(matches) != 0, nil
 }
 
-func DBVPSGetInfo(db *gorm.DB, userID uint) ([]*VPS, error) {
+func DBVPSGetInfo(db *gorm.DB, userID uint) ([]VPS, error) {
 
-	allVPS := []*VPS{}
+	allVPS := []VPS{}
 	err := db.Where("user_id = ?", userID).Find(&allVPS).Error
 	if err != nil { return nil, err }
 
@@ -112,17 +112,17 @@ func DBVPSDestroy(db *gorm.DB) {
 
 }
 
-func DBRequestListWithPurpose(db *gorm.DB, purpose uint) ([]*Request, error) {
+func DBRequestListWithPurpose(db *gorm.DB, purpose uint) ([]Request, error) {
 
-	request := []*Request{}
+	request := []Request{}
 	err := db.Preload("User").Where("request_purpose = ?", purpose).Find(&request).Error
 
 	return request, err
 }
 
-func DBRequestListUser(db *gorm.DB, userID uint) ([]*Request, error) {
+func DBRequestListUser(db *gorm.DB, userID uint) ([]Request, error) {
 
-	requests := []*Request{}
+	requests := []Request{}
 	err := db.Where("user_id = ?", userID).Find(&requests).Error
 
 	return requests, err
@@ -138,7 +138,7 @@ func DBRequestByID(db *gorm.DB, requestID uint) (Request, error) {
 // did the given user create the request
 func DBRequestUserOwns(db *gorm.DB, userID uint, requestID uint) (bool, error) {
 
-	request := []*Request{}
+	request := []Request{}
 	err := db.Where("id = ? AND user_id = ?", requestID, userID).Error
 	if err != nil {
 		return false, err

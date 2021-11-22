@@ -342,9 +342,27 @@ func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type requestListResponse struct {
-
+	RequestList      []Request      `json:"request_list"`
 }
 func requestListHandler(w http.ResponseWriter, r *http.Request) error {
+
+	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	db, err := DBConnection()
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	userRequests, err := DBRequestListUser(db, userID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	json.NewEncoder(w).Encode(requestListResponse{RequestList: userRequests})
+
 	return nil
 }
 

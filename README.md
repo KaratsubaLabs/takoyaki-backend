@@ -25,12 +25,15 @@ Export environment variables from `.env` file
 $ export $(grep -v '^#' .env | xargs)
 ```
 
+Run the database container
+```
+$ docker-compose up -d db
+```
+
 Run takoyaki
 ```
 $ go run *.go
 ```
-
-You will also need to have the database container up.
 
 ## RUNNING ALL CONTAINERS
 
@@ -59,7 +62,7 @@ $ sudo rm -rf db/data/
 
 ## TODO
 
-- [ ] database initialization migration (+ shell interface to init db)
+- [x] database initialization migration (+ shell interface to init db)
 - [x] validation for requests (as a middleware if possible)
 - [x] possibly error middleware
 - [x] figure out where to put temp files (cidata.iso etc) for when creating vps
