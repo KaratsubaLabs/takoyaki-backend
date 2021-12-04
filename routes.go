@@ -2,6 +2,7 @@ package main
 
 import (
 	"time"
+	"errors"
     "net/http"
 	"encoding/json"
 	"golang.org/x/crypto/bcrypt"
@@ -154,7 +155,8 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 	if registered {
-        return HTTPStatusError{http.StatusConflict, err}
+		// possibly return more generic error to reduce info leak
+        return HTTPStatusError{http.StatusConflict, errors.New("username or email already taken")}
 	}
 
 	// hash pass
@@ -168,7 +170,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
 		Email:    parsedBody.Email,
 		Password: string(hashed),
 	}
-    userID, err := DBUserRegister(db, newUser)
+    userID, err := DBUserRegister(db, &newUser)
 	if err != nil {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}

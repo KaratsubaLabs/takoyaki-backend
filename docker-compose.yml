@@ -1,15 +1,16 @@
 version: "3.8"
 services:
-  api:
+  app:
+    container_name: takoyaki-app
     depends_on:
-      - db
+      - database
     build: ./
     environment:
       - PORT=$API_PORT
     ports:
       - $API_PORT:$API_PORT
-
-  db:
+  database:
+    container_name: takoyaki-database
     image: postgres:13.1
     environment:
       - POSTGRES_USER=$DB_USER

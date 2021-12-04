@@ -119,7 +119,7 @@ func requestListAction(c *cli.Context) error {
 		}
 
 		fmt.Printf(
-			"%d | %s | %d | %d | %d | %s",
+			"%d | %s | %d | %d | %d | %s\n",
 			request.ID, request.User.Username, requestData.RAM, requestData.CPU, requestData.Disk, requestData.OS,
 		)
 	}
@@ -135,7 +135,7 @@ func requestListAction(c *cli.Context) error {
 		}
 
 		fmt.Printf(
-			"%d | %s | %d | %d | %d",
+			"%d | %s | %d | %d | %d\n",
 			request.ID, request.User.Username, requestData.RAM, requestData.CPU, requestData.Disk,
 		)
 	}

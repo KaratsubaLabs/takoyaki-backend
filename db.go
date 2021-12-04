@@ -43,9 +43,9 @@ func DBMigrate(db *gorm.DB) error {
  * directly in the client code
  */
 
-func DBUserRegister(db *gorm.DB, user User) (uint, error) {
+func DBUserRegister(db *gorm.DB, user *User) (uint, error) {
 
-	err := db.Select("id").Create(&user).Error
+	err := db.Create(user).Error
 	if err != nil { return 0, err }
 
 	return user.ID, nil
@@ -80,7 +80,7 @@ func DBUserCheckRegistered(db *gorm.DB, username string, email string) (bool, er
 		Error
 	if err != nil { return true, err }
 
-	return len(matches) == 0, nil
+	return len(matches) != 0, nil
 }
 
 func DBUserOwnsVPS(db *gorm.DB, userID uint, vpsID uint) (bool, error) {

@@ -73,4 +73,5 @@ $ sudo rm -rf db/data/
 - [ ] allow optional args when configuring vps (ie ssh key)
 - [ ] add tests? (might be overkill + annoying)
 - [ ] get progress of creating vps to show to frontend (possibly)
+- [ ] snapshot requests
 

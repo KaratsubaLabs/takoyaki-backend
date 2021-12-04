@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"context"
     "net/http"
 	"encoding/json"
@@ -37,6 +38,11 @@ func ValidationMiddleware(next http.Handler) http.Handler {
 		err := validator.New().Struct(parsedBody)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+
+			validationErrors := err.(validator.ValidationErrors)
+			json.NewEncoder(w).Encode(validationErrors)
+			fmt.Printf("Validation Errors %+v", validationErrors)
 			return
 		}
 
