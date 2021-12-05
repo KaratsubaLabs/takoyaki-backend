@@ -188,6 +188,12 @@ func requestApproveAction(c *cli.Context) error {
 		return cli.Exit("Invalid request type", 1)
 	}
 
+	// remove the request after it is processed
+	err = DBRequestDelete(db, uint(requestID))
+	if err != nil {
+        return cli.Exit("Error deleting request", 1)
+	}
+
     return nil
 }
 

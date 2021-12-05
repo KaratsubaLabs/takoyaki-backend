@@ -253,10 +253,10 @@ type vpsCreateRequest struct {
 	Username      string         `json:"username"     validate:"required,max=32"`
 	Password      string         `json:"password"     validate:"required"`
 	SSHKey        string         `json:"ssh_key"      validate:""`
-	RAM           int            `json:"ram"          validate:"required"`
-	CPU           int            `json:"cpu"          validate:"required"`
-	Disk          int            `json:"disk"         validate:"required"`
-	OS            string         `json:"os"           validate:"required"`
+	RAM           string         `json:"ram"          validate:"required,oneof="`
+	CPU           string         `json:"cpu"          validate:"required,oneof="`
+	Disk          string         `json:"disk"         validate:"required,oneof="`
+	OS            string         `json:"os"           validate:"required,oneof="`
 	Message       string         `json:"message"`
 }
 func vpsCreateHandler(w http.ResponseWriter, r *http.Request) error {
@@ -276,15 +276,20 @@ func vpsCreateHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
+	// TODO parse values for ram, cpu and disk
+	ram_value  := 2048
+	cpu_value  := 1
+	disk_value := 25
+
 	config := VPSCreateRequestData{
 		DisplayName: parsedBody.DisplayName,
 		Hostname:    parsedBody.Hostname,
 		Username:    parsedBody.Username,
 		Password:    parsedBody.Password,
 		SSHKey:      parsedBody.SSHKey,
-		RAM:         parsedBody.RAM,
-		CPU:         parsedBody.CPU,
-		Disk:        parsedBody.Disk,
+		RAM:         ram_value,
+		CPU:         cpu_value,
+		Disk:        disk_value,
 		OS:          parsedBody.OS,
 	}
 	configJSON, err := json.Marshal(config)

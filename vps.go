@@ -1,6 +1,7 @@
 package main
 
 import (
+	"time"
     "fmt"
     "os"
 	"os/exec"
@@ -8,9 +9,20 @@ import (
 )
 
 const (
-    RAM_LOW    = 512
-    RAM_MEDIUM = 1024
-    RAM_HIGH   = 2048
+    RAM_512    = 512
+    RAM_1024   = 1024
+    RAM_2048   = 2048
+)
+
+const (
+	CPU_1 = 1
+	CPU_2 = 2
+)
+
+const (
+	DISK_5  = 5
+	DISK_10 = 10
+	DISK_20 = 20
 )
 
 type OSInfo struct {
@@ -182,11 +194,47 @@ func VPSDestroy(vmName string) error {
 }
 
 // when a user requests for vps specs to be upgraded
-func VPSModify() {
+func VPSUpgrade() error {
 
+	return nil
 }
 
-func VPSBackup() {
+func VPSSnapshot(vmName string) error {
 
+	now := time.Now().String()
+
+	cmd := []string{
+		"virsh", "-c", "qemu:///system", "snapshot-create-as",
+		"--domain", vmName,
+		"--name", fmt.Sprintf("snapshot-%s-%s", vmName, now),
+    }
+	if err := runCommand(cmd); err != nil { return err }
+
+	return nil
+}
+
+func VPSStart(vmName string) error {
+
+	cmd := []string{
+		"virsh", "-c", "qemu:///system", "start", vmName,
+    }
+	if err := runCommand(cmd); err != nil { return err }
+
+	return nil
+}
+
+func VPSStop(vmName string) error {
+
+	cmd := []string{
+		"virsh", "-c", "qemu:///system", "shutdown", vmName,
+    }
+	if err := runCommand(cmd); err != nil { return err }
+
+	return nil
+}
+
+func VPSRestart(vmName string) error {
+
+	return nil
 }
 
