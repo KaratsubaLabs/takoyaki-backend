@@ -95,7 +95,7 @@ func DBUserOwnsVPS(db *gorm.DB, userID uint, vpsID uint) (bool, error) {
 	return len(matches) != 0, nil
 }
 
-func DBVPSGetInfo(db *gorm.DB, userID uint) ([]VPS, error) {
+func DBVPSGetUserAll(db *gorm.DB, userID uint) ([]VPS, error) {
 
 	allVPS := []VPS{}
 	err := db.Where("user_id = ?", userID).Find(&allVPS).Error
@@ -104,12 +104,25 @@ func DBVPSGetInfo(db *gorm.DB, userID uint) ([]VPS, error) {
 	return allVPS, nil
 }
 
-func DBVPSCreate(db *gorm.DB) {
+func DBVPSGet(db *gorm.DB, vpsID uint) (VPS, error) {
 
+	vpsInfo := VPS{}
+	err := db.Where("id = ?", vpsID).Find(&vpsInfo).Error
+	if err != nil { return VPS{}, err }
+
+	return vpsInfo, nil
 }
 
-func DBVPSDestroy(db *gorm.DB) {
+func DBVPSCreate(db *gorm.DB, newVPS VPS) error {
 
+	err := db.Create(&newVPS).Error
+	return err
+}
+
+func DBVPSDestroy(db *gorm.DB, vpsID uint) error {
+
+	err := db.Delete(&VPS{}, vpsID).Error
+	return err
 }
 
 func DBRequestListWithPurpose(db *gorm.DB, purpose uint) ([]Request, error) {

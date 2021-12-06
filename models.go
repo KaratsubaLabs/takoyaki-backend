@@ -46,6 +46,7 @@ type Request struct {
 type VPSCreateRequestData struct {
     DisplayName   string
     Hostname      string
+	UserID        uint
     Username      string
     Password      string
     SSHKey        string

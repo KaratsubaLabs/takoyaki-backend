@@ -178,11 +178,30 @@ func requestApproveAction(c *cli.Context) error {
 			return cli.Exit("Error parsing request data", 1)
 		}
 
+		// generate random name for vm
+		vmName := RandomString()
+
 		// perform the creation
-		err = VPSCreate(requestData)
+		err = VPSCreate(vmName, requestData)
 		if err != nil {
 			return cli.Exit("Failed creating vm", 1)
 		}
+
+		// add vps to database
+		newVPS := VPS{
+			DisplayName: requestData.DisplayName,
+			InternalName: vmName,
+			UserID: requestData.UserID,
+			RAM: requestData.RAM,
+			CPU: requestData.CPU,
+			Disk: requestData.Disk,
+			OS: requestData.OS,
+		}
+		err = DBVPSCreate(db, newVPS)
+		if err != nil {
+			return cli.Exit("Failed inserting vm into db", 1)
+		}
+
 
 	default:
 		return cli.Exit("Invalid request type", 1)

@@ -3,26 +3,10 @@ package main
 import (
 	"time"
     "fmt"
+	"errors"
     "os"
 	"os/exec"
 	"path/filepath"
-)
-
-const (
-    RAM_512    = 512
-    RAM_1024   = 1024
-    RAM_2048   = 2048
-)
-
-const (
-	CPU_1 = 1
-	CPU_2 = 2
-)
-
-const (
-	DISK_5  = 5
-	DISK_10 = 10
-	DISK_20 = 20
 )
 
 type OSInfo struct {
@@ -84,15 +68,12 @@ func runCommand(args []string) error {
 }
 
 // run these as a go routine since they block
-func VPSCreate(config VPSCreateRequestData) error {
+func VPSCreate(vmName string, config VPSCreateRequestData) error {
 
     // TODO do some validation on config to make sure there is no
     // script injection or insane settings going on
 
     // check if vm already exists
-
-	// generate random name for vm
-	vmName := RandomString()
 
 	// create temp dir
 	tempDir, err := os.MkdirTemp("", "takoyaki-*")
@@ -106,8 +87,11 @@ func VPSCreate(config VPSCreateRequestData) error {
     metadataLocation := filepath.Join(tempDir, "meta-data")
     userdataLocation := filepath.Join(tempDir, "user-data")
 	volumeName := vmName + "-vol"
-	// make sure config.OS is valid
-	cloudImg := filepath.Join(CloudImageDir, OSOptions[config.OS].ImageFile)
+
+	osOptions, ok := OSOptions[config.OS]
+	if !ok { return errors.New("invalid os") }
+
+	cloudImg := filepath.Join(CloudImageDir, osOptions.ImageFile)
 	osVariant := OSOptions[config.OS].OSVariant // determine based on image (full list from osinfo-query os)
 
     // generate meta-data and user-data files
@@ -167,25 +151,25 @@ func VPSDestroy(vmName string) error {
 	// possibly backup vps
 
 	cmd := []string{
-		"virt-install", "-c", "qemu:///system",
+		"virsh", "-c", "qemu:///system",
 		"shutdown", vmName,
 	}
 	if err := runCommand(cmd); err != nil { return err }
 
 	cmd = []string{
-		"virt-install", "-c", "qemu:///system",
+		"virsh", "-c", "qemu:///system",
 		"destroy", vmName,
 	}
 	if err := runCommand(cmd); err != nil { return err }
 
 	cmd = []string{
-		"virt-install", "-c", "qemu:///system",
+		"virsh", "-c", "qemu:///system",
 		"undefine", "--nvram", vmName,
 	}
 	if err := runCommand(cmd); err != nil { return err }
 
 	cmd = []string{
-		"virt-install", "-c", "qemu:///system",
+		"virsh", "-c", "qemu:///system",
 		"vol-delete", "--pool", VolumePoolName, volumeName,
 	}
 	if err := runCommand(cmd); err != nil { return err }

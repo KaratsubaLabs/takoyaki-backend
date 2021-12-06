@@ -234,7 +234,7 @@ func vpsInfoHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	allUserVPS, err := DBVPSGetInfo(db, userID)
+	allUserVPS, err := DBVPSGetUserAll(db, userID)
 	if err != nil {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -253,10 +253,10 @@ type vpsCreateRequest struct {
 	Username      string         `json:"username"     validate:"required,max=32"`
 	Password      string         `json:"password"     validate:"required"`
 	SSHKey        string         `json:"ssh_key"      validate:""`
-	RAM           string         `json:"ram"          validate:"required,oneof="`
-	CPU           string         `json:"cpu"          validate:"required,oneof="`
-	Disk          string         `json:"disk"         validate:"required,oneof="`
-	OS            string         `json:"os"           validate:"required,oneof="`
+	RAM           int            `json:"ram"          validate:"required,min=1,max=4"`
+	CPU           int            `json:"cpu"          validate:"required,min=1,max=4"`
+	Disk          int            `json:"disk"         validate:"required,min=5,max=50"`
+	OS            string         `json:"os"           validate:"required"`
 	Message       string         `json:"message"`
 }
 func vpsCreateHandler(w http.ResponseWriter, r *http.Request) error {
@@ -277,19 +277,16 @@ func vpsCreateHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// TODO parse values for ram, cpu and disk
-	ram_value  := 2048
-	cpu_value  := 1
-	disk_value := 25
-
 	config := VPSCreateRequestData{
 		DisplayName: parsedBody.DisplayName,
 		Hostname:    parsedBody.Hostname,
+		UserID:      userID,
 		Username:    parsedBody.Username,
 		Password:    parsedBody.Password,
 		SSHKey:      parsedBody.SSHKey,
-		RAM:         ram_value,
-		CPU:         cpu_value,
-		Disk:        disk_value,
+		RAM:         parsedBody.RAM*1024,
+		CPU:         parsedBody.CPU,
+		Disk:        parsedBody.Disk,
 		OS:          parsedBody.OS,
 	}
 	configJSON, err := json.Marshal(config)
@@ -338,12 +335,25 @@ func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 	if !ownsVPS {
-        return HTTPStatusError{http.StatusForbidden, nil}
+        return HTTPStatusError{http.StatusForbidden, errors.New("no permission to access vps")}
+	}
+
+	vpsInfo, err := DBVPSGet(db, parsedBody.VPSID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
 	// issue delete commands
+	err = VPSDestroy(vpsInfo.InternalName)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
 
 	// remove from db
+	err = DBVPSDestroy(db, parsedBody.VPSID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
 
 	return nil
 }

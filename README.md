@@ -1,7 +1,7 @@
 
 # takoyaki backend
 
-go backend for からつばLABS's **project takoyaki** - the vps platform.
+go backend for からつばLABS' **project takoyaki** - the vps platform
 
 ## RUNNING FOR DEVELOPMENT
 
@@ -30,9 +30,14 @@ Run the database container
 $ docker-compose up -d db
 ```
 
+Initialize/migrate the database
+```
+$ go run *.go db migrate
+```
+
 Run takoyaki
 ```
-$ go run *.go
+$ go run *.go server
 ```
 
 ## RUNNING ALL CONTAINERS
@@ -67,11 +72,11 @@ $ sudo rm -rf db/data/
 - [x] possibly error middleware
 - [x] figure out where to put temp files (cidata.iso etc) for when creating vps
 - [x] jwt auth
-- [ ] possibly create db struct so methods can all be namespaced
 - [x] look at database transactions (+ are they really needed)
 - [ ] write the routes
 - [ ] allow optional args when configuring vps (ie ssh key)
 - [ ] add tests? (might be overkill + annoying)
 - [ ] get progress of creating vps to show to frontend (possibly)
 - [ ] snapshot requests
+- [ ] look into using RLS
 
