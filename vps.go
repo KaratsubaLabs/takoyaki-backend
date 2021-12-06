@@ -20,6 +20,7 @@ var OSOptions = map[string]OSInfo{
 
 const VolumePoolName = "vps"
 const CloudImageDir = "/home/pinosaur/Temp/cloud-img"
+const SnapshotDir = "/snapshots"
 
 const MetaDataTemplate =
 `
@@ -186,11 +187,12 @@ func VPSUpgrade() error {
 func VPSSnapshot(vmName string) error {
 
 	now := time.Now().String()
+	snapshotName := fmt.Sprintf("snapshot-%s-%s", vmName, now)
 
 	cmd := []string{
 		"virsh", "-c", "qemu:///system", "snapshot-create-as",
 		"--domain", vmName,
-		"--name", fmt.Sprintf("snapshot-%s-%s", vmName, now),
+		"--name", filepath.Join(SnapshotDir, snapshotName),
     }
 	if err := runCommand(cmd); err != nil { return err }
 

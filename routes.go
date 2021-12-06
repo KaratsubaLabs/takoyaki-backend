@@ -93,27 +93,49 @@ var routeSchema = []routeInfo{
 		bodySchema: &vpsDeleteRequest{},
 		handlerFn: vpsDeleteHandler,
 	},
+	{
+		route: "/vps/start",
+		methods: []string{"POST"},
+		authRoute: true,
+		bodySchema: &vpsStartRequest{},
+		handlerFn: vpsStartHandler,
+	},
+	{
+		route: "/vps/stop",
+		methods: []string{"POST"},
+		authRoute: true,
+		bodySchema: &vpsStopRequest{},
+		handlerFn: vpsStopHandler,
+	},
+	{
+		route: "/vps/snapshot",
+		methods: []string{"POST"},
+		authRoute: true,
+		bodySchema: &vpsSnapshotRequest{},
+		handlerFn: vpsSnapshotHandler,
+	},
 }
 
 // ping endpoint for debug purposes
 func pingHandler(w http.ResponseWriter, r *http.Request) error {
 
-	// var newVPS = VPSConfig{
-	// 	DisplayName: "pino-vps",
-	// 	Hostname:    "pino-vps",
-	// 	Username:    "pinosaur",
-	// 	Password:    "$6$rounds=4096$Z7a9LgphTzzWHJbQ$Yp8C0xPXMJhE45/Q7JLo/OoAWODjlCDGH/Zdgb7FUaX5HeGdnYH4XXP13bWZldzDlSndSKSmDWTbot88ZRuJJ1",
-	// 	SSHKey:      "ssh-rsa blah blah",
-	// 	RAM:         RAM_HIGH,
-	// 	CPU:         1,
-	// 	Disk:        25,
-	// 	OS:          "ubuntu",
-	// }
+	/*
+	var newVPS = VPSConfig{
+		DisplayName: "pino-vps",
+		Hostname:    "pino-vps",
+		Username:    "pinosaur",
+		Password:    "$6$rounds=4096$Z7a9LgphTzzWHJbQ$Yp8C0xPXMJhE45/Q7JLo/OoAWODjlCDGH/Zdgb7FUaX5HeGdnYH4XXP13bWZldzDlSndSKSmDWTbot88ZRuJJ1",
+		SSHKey:      "ssh-rsa blah blah",
+		RAM:         RAM_HIGH,
+		CPU:         1,
+		Disk:        25,
+		OS:          "ubuntu",
+	}
 
-	// err := VPSCreate(newVPS)
-	// if err != nil {
-	// 	return HTTPStatusError{http.StatusInternalServerError, err}
-	// }
+	err := VPSCreate(newVPS)
+	if err != nil {
+		return HTTPStatusError{http.StatusInternalServerError, err}
+	}
 
 	db, err := DBConnection()
 	if err != nil {
@@ -124,6 +146,7 @@ func pingHandler(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
+	*/
 
 	return nil
 }
@@ -222,6 +245,9 @@ func loginHandler(w http.ResponseWriter, r *http.Request) error {
 type vpsInfoRequest struct {
 	VPSName      string          `json:"vps_name" validate:"required"`
 }
+type vpsInfoResponse struct {
+	AllVPS       []VPS           `json:"all_vps"`
+}
 func vpsInfoHandler(w http.ResponseWriter, r *http.Request) error {
 
 	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
@@ -239,9 +265,7 @@ func vpsInfoHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	_ = allUserVPS
-
-	// TODO figure out how to store user vps config in db
+	json.NewEncoder(w).Encode(vpsInfoResponse{AllVPS: allUserVPS})
 
 	return nil
 }
@@ -329,7 +353,6 @@ func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	// check that user owns the vps
 	ownsVPS, err := DBUserOwnsVPS(db, userID, parsedBody.VPSID)
 	if err != nil {
         return HTTPStatusError{http.StatusInternalServerError, err}
@@ -351,6 +374,130 @@ func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 
 	// remove from db
 	err = DBVPSDestroy(db, parsedBody.VPSID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	return nil
+}
+
+type vpsStartRequest struct {
+	VPSID    uint   `json:"vps_id" validate:"required"`
+}
+func vpsStartHandler(w http.ResponseWriter, r *http.Request) error {
+
+	// TODO: this is a LOT of duplicated code, make this better
+	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*vpsStartRequest)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	db, err := DBConnection()
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	ownsVPS, err := DBUserOwnsVPS(db, userID, parsedBody.VPSID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+	if !ownsVPS {
+        return HTTPStatusError{http.StatusForbidden, errors.New("no permission to access vps")}
+	}
+
+	vpsInfo, err := DBVPSGet(db, parsedBody.VPSID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	err = VPSStart(vpsInfo.InternalName)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	return nil
+}
+
+type vpsStopRequest struct {
+	VPSID    uint   `json:"vps_id" validate:"required"`
+}
+func vpsStopHandler(w http.ResponseWriter, r *http.Request) error {
+
+	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*vpsStopRequest)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	db, err := DBConnection()
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	ownsVPS, err := DBUserOwnsVPS(db, userID, parsedBody.VPSID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+	if !ownsVPS {
+        return HTTPStatusError{http.StatusForbidden, errors.New("no permission to access vps")}
+	}
+
+	vpsInfo, err := DBVPSGet(db, parsedBody.VPSID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	err = VPSStop(vpsInfo.InternalName)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	return nil
+}
+
+type vpsSnapshotRequest struct {
+	VPSID    uint   `json:"vps_id" validate:"required"`
+}
+func vpsSnapshotHandler(w http.ResponseWriter, r *http.Request) error {
+
+	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*vpsStopRequest)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
+	if !ok {
+        return HTTPStatusError{http.StatusInternalServerError, nil}
+	}
+
+	db, err := DBConnection()
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	ownsVPS, err := DBUserOwnsVPS(db, userID, parsedBody.VPSID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+	if !ownsVPS {
+        return HTTPStatusError{http.StatusForbidden, errors.New("no permission to access vps")}
+	}
+
+	vpsInfo, err := DBVPSGet(db, parsedBody.VPSID)
+	if err != nil {
+        return HTTPStatusError{http.StatusInternalServerError, err}
+	}
+
+	err = VPSSnapshot(vpsInfo.InternalName)
 	if err != nil {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}

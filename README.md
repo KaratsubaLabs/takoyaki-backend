@@ -79,4 +79,5 @@ $ sudo rm -rf db/data/
 - [ ] get progress of creating vps to show to frontend (possibly)
 - [ ] snapshot requests
 - [ ] look into using RLS
+- [ ] return ip address and state of vm as well in vps info endpoint
 
