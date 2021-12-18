@@ -52,12 +52,12 @@ func DBUserRegister(db *gorm.DB, user *User) (uint, error) {
 }
 
 // returns user id on successful auth
-func DBUserCheckCreds(db *gorm.DB, username string, password string) (uint, error) {
+func DBUserCheckCreds(db *gorm.DB, email string, password string) (uint, error) {
 
 	loginUser := User{}
 	err := db.
 		Select("id", "password").
-		Where("username = ?", username).
+		Where("email = ?", email).
 		First(&loginUser).
 		Error
 	if err != nil { return 0, err }
@@ -70,12 +70,11 @@ func DBUserCheckCreds(db *gorm.DB, username string, password string) (uint, erro
 }
 
 // check if username or email are already taken (true if not avaliable - possibly bad design)
-func DBUserCheckRegistered(db *gorm.DB, username string, email string) (bool, error) {
+func DBUserCheckRegistered(db *gorm.DB, email string) (bool, error) {
 
 	matches := []User{}
 	err := db.
-		Where("username = ?", username).
-		Or("email = ?", email).
+		Where("email = ?", email).
 		Find(&matches).
 		Error
 	if err != nil { return true, err }

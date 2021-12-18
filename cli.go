@@ -109,7 +109,7 @@ func requestListAction(c *cli.Context) error {
 	}
 
 	fmt.Printf("VPS CREATION REQUESTS =-=-=-=-=-=-=\n")
-	fmt.Printf("Request ID | Username | RAM | CPU | Disk | OS\n")
+	fmt.Printf("Request ID | Email | RAM | CPU | Disk | OS\n")
 	for _, request := range createRequests {
 
 		requestData := VPSCreateRequestData{}
@@ -120,12 +120,12 @@ func requestListAction(c *cli.Context) error {
 
 		fmt.Printf(
 			"%d | %s | %d | %d | %d | %s\n",
-			request.ID, request.User.Username, requestData.RAM, requestData.CPU, requestData.Disk, requestData.OS,
+			request.ID, request.User.Email, requestData.RAM, requestData.CPU, requestData.Disk, requestData.OS,
 		)
 	}
 
 	fmt.Printf("VPS UPGRADE REQUESTS =-=-=-=-=-=-=\n")
-	fmt.Printf("Request ID | Username | RAM | CPU | Disk\n")
+	fmt.Printf("Request ID | Email | RAM | CPU | Disk\n")
 	for _, request := range upgradeRequests {
 
 		requestData := VPSUpgradeRequestData{}
@@ -136,7 +136,7 @@ func requestListAction(c *cli.Context) error {
 
 		fmt.Printf(
 			"%d | %s | %d | %d | %d\n",
-			request.ID, request.User.Username, requestData.RAM, requestData.CPU, requestData.Disk,
+			request.ID, request.User.Email, requestData.RAM, requestData.CPU, requestData.Disk,
 		)
 	}
 

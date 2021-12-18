@@ -152,9 +152,8 @@ func pingHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type registerRequest struct {
-    Username      string         `json:"username" validate:"required,min=3,max=32"`
-    Password      string         `json:"password" validate:"required,min=8,max=128"`
 	Email         string         `json:"email"    validate:"required,email"`
+    Password      string         `json:"password" validate:"required,min=8,max=128"`
 }
 type registerResponse struct {
     Token         string         `json:"token"`
@@ -173,7 +172,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// make sure user name and email are not already taken
-	registered, err := DBUserCheckRegistered(db, parsedBody.Username, parsedBody.Email)
+	registered, err := DBUserCheckRegistered(db, parsedBody.Email)
 	if err != nil {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -189,7 +188,6 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	newUser := User{
-		Username: parsedBody.Username,
 		Email:    parsedBody.Email,
 		Password: string(hashed),
 	}
@@ -209,7 +207,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type loginRequest struct {
-	Username      string         `json:"username" validate:"required"`
+	Email         string         `json:"email"    validate:"required,email"`
 	Password      string         `json:"password" validate:"required"`
 }
 type loginResponse struct {
@@ -227,7 +225,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	userID, err := DBUserCheckCreds(db, parsedBody.Username, parsedBody.Password)
+	userID, err := DBUserCheckCreds(db, parsedBody.Email, parsedBody.Password)
 	if err != nil {
         return HTTPStatusError{http.StatusUnauthorized, err}
 	}
