@@ -270,15 +270,15 @@ func vpsInfoHandler(w http.ResponseWriter, r *http.Request) error {
 
 // or just use the VPSConfig struct directly
 type vpsCreateRequest struct {
-	DisplayName   string         `json:"display_name" validate:"required,max=128"`
-	Hostname      string         `json:"hostname"     validate:"required,max=128"`
-	Username      string         `json:"username"     validate:"required,max=32"`
-	Password      string         `json:"password"     validate:"required"`
-	SSHKey        string         `json:"ssh_key"      validate:""`
-	RAM           int            `json:"ram"          validate:"required,min=1,max=4"`
-	CPU           int            `json:"cpu"          validate:"required,min=1,max=4"`
-	Disk          int            `json:"disk"         validate:"required,min=5,max=50"`
-	OS            string         `json:"os"           validate:"required"`
+	DisplayName   string         `json:"display_name"           validate:"required,max=128"`
+	Hostname      string         `json:"hostname"               validate:"required,max=128"`
+	Username      string         `json:"username"               validate:"required,max=32"`
+	Password      string         `json:"password"               validate:"required"`
+	SSHKey        string         `json:"ssh_key"`
+	RAM           int            `json:"ram"                    validate:"required,min=1,max=4"`
+	CPU           int            `json:"cpu"                    validate:"required,min=1,max=4"`
+	Disk          int            `json:"disk"                   validate:"required,min=5,max=50"`
+	OS            string         `json:"os"                     validate:"required"`
 	Message       string         `json:"message"`
 }
 func vpsCreateHandler(w http.ResponseWriter, r *http.Request) error {

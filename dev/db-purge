@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# dev scripts for takoyaki
+# run this script from project root
+
+echo "Purging database, docker containers and vm, are you sure [y/n]"
+read confirm
+[ ! "$confirm" = "y" ] && exit 0
+
+# stop containers
+docker-compose down
+
+# delete db data
+sudo rm -rf db
+
+# destroy all domains
+for domain in $(virsh -c qemu:///system list --name); do
+    virsh -c qemu:///system shutdown "$domain"
+    virsh -c qemu:///system destroy "$domain"
+    virsh -c qemu:///system undefine --nvram "$domain"
+    virsh -c qemu:///system vol-delete --pool vps "${domain}-vol"
+done
+

@@ -4,6 +4,7 @@ import (
 	"time"
     "fmt"
 	"errors"
+	"bytes"
     "os"
 	"os/exec"
 	"path/filepath"
@@ -22,24 +23,40 @@ const VolumePoolName = "vps"
 const CloudImageDir = "/home/pinosaur/Temp/cloud-img"
 const SnapshotDir = "/snapshots"
 
-const MetaDataTemplate =
-`
+func buildMetadataFile(hostname string) string {
+	return fmt.Sprintf(`
 instance-id: %s
 local-hostname: %s
-`
+`, hostname, hostname)
+}
 
-const UserDataTemplate =
-`
+func buildUserdataFile(username string, password string, sshKey string) string {
+
+	// TODO: validate ssh key
+	if sshKey == "" {
+		return fmt.Sprintf(`
 #cloud-config
 users:
   - name: %s
-    ssh_authorized_keys:
-      - %s
     groups: sudo
     shell: /bin/bash
     passwd: %s
     lock_passwd: false
-`
+`, username, password)
+	}
+
+	return fmt.Sprintf(`
+#cloud-config
+users:
+  - name: %s
+    groups: sudo
+    shell: /bin/bash
+    passwd: %s
+    lock_passwd: false
+    ssh_authorized_keys:
+      - %s
+`, username, password, sshKey)
+}
 
 func writeToFile(filepath string, content string) error {
 
@@ -66,6 +83,29 @@ func runCommand(args []string) error {
 	if err != nil { return err }
 
 	return nil
+}
+
+func runCommandWithOutput(args []string) (string, error) {
+
+	cmd := exec.Command(args[0], args[1:]...)
+
+	var output bytes.Buffer
+
+	cmd.Stdout = &output
+	cmd.Stderr = os.Stderr
+
+	err := cmd.Run()
+	if err != nil { return "", err }
+
+	return output.String(), nil
+}
+
+func makeUserPassword(rawPassword string) (string, error) {
+
+	cmd := []string{"mkpasswd", "--method=SHA-512", "--rounds=4096", rawPassword}
+	hashedPass, err := runCommandWithOutput(cmd)
+
+	return hashedPass, err
 }
 
 // run these as a go routine since they block
@@ -96,11 +136,16 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 	osVariant := OSOptions[config.OS].OSVariant // determine based on image (full list from osinfo-query os)
 
     // generate meta-data and user-data files
-	metadataFile := fmt.Sprintf(MetaDataTemplate, config.Hostname, config.Hostname)
+	metadataFile := buildMetadataFile(config.Hostname)
 	err = writeToFile(metadataLocation, metadataFile)
 	if err != nil { return err }
 
-	userdataFile := fmt.Sprintf(UserDataTemplate, config.Username, config.SSHKey, config.Password)
+	// encrypt user password
+	hashedPass, err := makeUserPassword(config.Password)
+	if err != nil { return err }
+
+	userdataFile := buildUserdataFile(config.Username, hashedPass, config.SSHKey)
+	fmt.Printf("userdata file =-=-=-=-=\n%s", userdataFile)
 	err = writeToFile(userdataLocation, userdataFile)
 	if err != nil { return err }
 
