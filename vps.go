@@ -4,9 +4,7 @@ import (
 	"time"
     "fmt"
 	"errors"
-	"bytes"
     "os"
-	"os/exec"
 	"path/filepath"
 )
 
@@ -58,52 +56,10 @@ users:
 `, username, password, sshKey)
 }
 
-func writeToFile(filepath string, content string) error {
-
-	f, err := os.Create(filepath)
-	if err != nil { return err }
-
-	defer f.Close()
-
-	_, err = f.WriteString(content)
-	if err != nil { return err }
-
-	return nil
-}
-
-func runCommand(args []string) error {
-
-	cmd := exec.Command(args[0], args[1:]...)
-
-	// log these instead
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	err := cmd.Run()
-	if err != nil { return err }
-
-	return nil
-}
-
-func runCommandWithOutput(args []string) (string, error) {
-
-	cmd := exec.Command(args[0], args[1:]...)
-
-	var output bytes.Buffer
-
-	cmd.Stdout = &output
-	cmd.Stderr = os.Stderr
-
-	err := cmd.Run()
-	if err != nil { return "", err }
-
-	return output.String(), nil
-}
-
 func makeUserPassword(rawPassword string) (string, error) {
 
 	cmd := []string{"mkpasswd", "--method=SHA-512", "--rounds=4096", rawPassword}
-	hashedPass, err := runCommandWithOutput(cmd)
+	hashedPass, err := RunCommandWithOutput(cmd)
 
 	return hashedPass, err
 }
@@ -137,37 +93,38 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 
     // generate meta-data and user-data files
 	metadataFile := buildMetadataFile(config.Hostname)
-	err = writeToFile(metadataLocation, metadataFile)
+	err = WriteToFile(metadataLocation, metadataFile)
 	if err != nil { return err }
 
 	// encrypt user password
+	// TODO make sure container has mkpasswd program installed
 	hashedPass, err := makeUserPassword(config.Password)
 	if err != nil { return err }
 
 	userdataFile := buildUserdataFile(config.Username, hashedPass, config.SSHKey)
 	fmt.Printf("userdata file =-=-=-=-=\n%s", userdataFile)
-	err = writeToFile(userdataLocation, userdataFile)
+	err = WriteToFile(userdataLocation, userdataFile)
 	if err != nil { return err }
 
     cmd := []string{
         "genisoimage", "-output", cidataLocation, "-V",
         "cidata", "-r", "-J", userdataLocation, metadataLocation,
     }
-	if err := runCommand(cmd); err != nil { return err }
+	if err := RunCommand(cmd); err != nil { return err }
 
     // create volume
 	cmd = []string {
 		"virsh", "-c", "qemu:///system", "vol-create-as",
 		VolumePoolName, volumeName, fmt.Sprintf("%dG", config.Disk), "--format", "qcow2",
 	}
-	if err := runCommand(cmd); err != nil { return err }
+	if err := RunCommand(cmd); err != nil { return err }
 
 	// load cloud image into volume
 	cmd = []string {
 		"virsh", "-c", "qemu:///system", "vol-upload",
 		"--pool", VolumePoolName, volumeName, cloudImg,
 	}
-	if err := runCommand(cmd); err != nil { return err }
+	if err := RunCommand(cmd); err != nil { return err }
 
     // create the vm
     cmd = []string{
@@ -184,7 +141,7 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 		"--graphics", "vnc,port=5911,listen=127.0.0.1", // get rid of this later
 		"--noautoconsole",
     }
-	if err := runCommand(cmd); err != nil { return err }
+	if err := RunCommand(cmd); err != nil { return err }
 
 	return nil
 }
@@ -200,25 +157,25 @@ func VPSDestroy(vmName string) error {
 		"virsh", "-c", "qemu:///system",
 		"shutdown", vmName,
 	}
-	if err := runCommand(cmd); err != nil { return err }
+	if err := RunCommand(cmd); err != nil { return err }
 
 	cmd = []string{
 		"virsh", "-c", "qemu:///system",
 		"destroy", vmName,
 	}
-	if err := runCommand(cmd); err != nil { return err }
+	if err := RunCommand(cmd); err != nil { return err }
 
 	cmd = []string{
 		"virsh", "-c", "qemu:///system",
 		"undefine", "--nvram", vmName,
 	}
-	if err := runCommand(cmd); err != nil { return err }
+	if err := RunCommand(cmd); err != nil { return err }
 
 	cmd = []string{
 		"virsh", "-c", "qemu:///system",
 		"vol-delete", "--pool", VolumePoolName, volumeName,
 	}
-	if err := runCommand(cmd); err != nil { return err }
+	if err := RunCommand(cmd); err != nil { return err }
 
 	return nil
 }
@@ -239,7 +196,7 @@ func VPSSnapshot(vmName string) error {
 		"--domain", vmName,
 		"--name", filepath.Join(SnapshotDir, snapshotName),
     }
-	if err := runCommand(cmd); err != nil { return err }
+	if err := RunCommand(cmd); err != nil { return err }
 
 	return nil
 }
@@ -249,7 +206,7 @@ func VPSStart(vmName string) error {
 	cmd := []string{
 		"virsh", "-c", "qemu:///system", "start", vmName,
     }
-	if err := runCommand(cmd); err != nil { return err }
+	if err := RunCommand(cmd); err != nil { return err }
 
 	return nil
 }
@@ -259,7 +216,7 @@ func VPSStop(vmName string) error {
 	cmd := []string{
 		"virsh", "-c", "qemu:///system", "shutdown", vmName,
     }
-	if err := runCommand(cmd); err != nil { return err }
+	if err := RunCommand(cmd); err != nil { return err }
 
 	return nil
 }

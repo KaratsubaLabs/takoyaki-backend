@@ -40,6 +40,10 @@ Run takoyaki
 $ go run *.go server
 ```
 
+There are also a couple of utility scripts for rapid development in `dev/`. Be
+very careful when running these as they will purge all of your containers and
+vms.
+
 ## RUNNING ALL CONTAINERS
 
 To be able to run the stack, **docker** and **docker-compose** are required.
@@ -74,7 +78,7 @@ $ sudo rm -rf db/data/
 - [x] jwt auth
 - [x] look at database transactions (+ are they really needed)
 - [ ] write the routes
-- [ ] allow optional args when configuring vps (ie ssh key)
+- [x] allow optional args when configuring vps (ie ssh key)
 - [ ] add tests? (might be overkill + annoying)
 - [ ] get progress of creating vps to show to frontend (possibly)
 - [ ] snapshot requests
