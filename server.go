@@ -5,15 +5,14 @@ import (
     "net/http"
 )
 
+const PORT = "8080"
 func StartServer() {
-
-    port := ":8080"
 
     var mux *http.ServeMux = http.NewServeMux()
     Routes(mux)
 
-    fmt.Printf("Listening on port %s\n", port)
-    http.ListenAndServe(port, mux)
+    fmt.Printf("Listening on port %s\n", PORT)
+	http.ListenAndServe(":"+PORT, mux)
 
 }
 

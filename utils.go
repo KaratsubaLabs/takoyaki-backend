@@ -62,7 +62,7 @@ func RunCommand(args []string) (string, error) {
 // RUN COMMAND ON HOST
 // TODO: need to also pass output back inside container so we know when
 // the command has finished executing
-const HOST_PIPE = "/var/run/takoyaki"
+const HOST_PIPE = "/var/run/takoyaki/pipe"
 func RunCommandOnHost(args []string) error {
 
 	cmd := exec.Command("echo", args[0:]...)
