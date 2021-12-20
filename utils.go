@@ -1,10 +1,10 @@
 package main
 
 import (
-	"time"
-	"bytes"
 	"os"
 	"os/exec"
+	"bytes"
+	"time"
 	"math/rand"
 )
 
@@ -44,39 +44,7 @@ func WriteToFile(filepath string, content string) error {
 	return nil
 }
 
-// RUN COMMAND ON HOST
-// TODO: need to also pass output back inside container so we know when
-// the command has finished executing
-/*
-func RunCommandOnHost(args []string) error {
-
-	cmd := exec.Command("echo", args[0:]...)
-
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	err := cmd.Run()
-	if err != nil { return err }
-
-	return nil
-}
-*/
-
-func RunCommand(args []string) error {
-
-	cmd := exec.Command(args[0], args[1:]...)
-
-	// log these instead
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	err := cmd.Run()
-	if err != nil { return err }
-
-	return nil
-}
-
-func RunCommandWithOutput(args []string) (string, error) {
+func RunCommand(args []string) (string, error) {
 
 	cmd := exec.Command(args[0], args[1:]...)
 
@@ -89,5 +57,27 @@ func RunCommandWithOutput(args []string) (string, error) {
 	if err != nil { return "", err }
 
 	return output.String(), nil
+}
+
+// RUN COMMAND ON HOST
+// TODO: need to also pass output back inside container so we know when
+// the command has finished executing
+const HOST_PIPE = "/var/run/takoyaki"
+func RunCommandOnHost(args []string) error {
+
+	cmd := exec.Command("echo", args[0:]...)
+
+	pf, err := os.OpenFile(HOST_PIPE, os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModeNamedPipe)
+	if err != nil { return err }
+
+	defer pf.Close()
+
+	cmd.Stdout = pf
+	cmd.Stderr = os.Stderr
+
+	err = cmd.Run()
+	if err != nil { return err }
+
+	return nil
 }
 
