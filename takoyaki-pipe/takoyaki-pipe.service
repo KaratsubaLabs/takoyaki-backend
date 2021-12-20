@@ -1,0 +1,14 @@
+
+[Unit]
+Description=runs takoyaki vm commands on host
+
+[Service]
+Type=simple
+User=libvirt
+WorkingDirectory=/usr/local/bin
+ExecStart=takoyaki-pipe
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+

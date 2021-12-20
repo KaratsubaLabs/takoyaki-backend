@@ -1,0 +1,43 @@
+#!/bin/sh
+
+api_url='http://localhost:3000'
+user_token=''
+
+register() {
+    curl -v -H 'Content-Type: application/json' \
+        -X POST \
+        -d '{"email": "pinosaur@karatsubalabs.com", "password": "poopoopoopoo"}' \
+        "${api_url}/register"
+}
+
+login() {
+    curl -v -H 'Content-Type: application/json' \
+        -X POST \
+        -d '{"email": "pinosaur@karatsubalabs.com", "password": "poopoopoopoo"}' \
+        "${api_url}/login"
+}
+
+vps_create() {
+    curl -v -H 'Content-Type: application/json' \
+        -X POST \
+        -H "x-access-token: $user_token" \
+        -d '{"display_name": "pinovps", "hostname": "pinovpspeee", "username": "pinosaur", "password": "abc123", "ram": 2, "cpu": 1, "disk": 25, "os": "ubuntu"}' \
+        "${api_url}/vps/create"
+}
+
+vps_delete() {
+    curl -v -H 'Content-Type: application/json' \
+        -X POST \
+        -H "x-access-token: $user_token" \
+        -d '{"vps_id": 1}' \
+        "${api_url}/vps/delete"
+}
+
+case $1 in
+    register) register;;
+    login) login;;
+    vps_create) vps_create;;
+    vps_delete) vps_delete;;
+    *) echo "invalid operation";;
+esac
+

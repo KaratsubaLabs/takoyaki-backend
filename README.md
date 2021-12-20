@@ -44,7 +44,7 @@ There are also a couple of utility scripts for rapid development in `dev/`. Be
 very careful when running these as they will purge all of your containers and
 vms.
 
-## RUNNING ALL CONTAINERS
+## RUNNING FOR PRODUCTION
 
 To be able to run the stack, **docker** and **docker-compose** are required.
 Consult the relevant documentation based on your system on how to get these set
@@ -56,9 +56,18 @@ file.
 $ cp dotenv.example .env
 ```
 
+**takoyaki-pipe**, the systemd service that executes libvirt commands for the
+**takoyaki** container must also be installed and ran:
+```
+$ cd takoyaki-pipe
+$ make install
+$ systemctl enable takoyaki-pipe
+$ systemctl start takoyaki-pipe
+```
+
 Next we can start the containers
 ```
-$ docker-compose up
+$ docker-compose up --build
 ```
 
 ## RESETING THE DATABASE
@@ -84,4 +93,5 @@ $ sudo rm -rf db/data/
 - [ ] snapshot requests
 - [ ] look into using RLS
 - [ ] return ip address and state of vm as well in vps info endpoint
+- [x] execute vm commands on host
 

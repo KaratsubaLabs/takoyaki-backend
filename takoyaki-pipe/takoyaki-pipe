@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# takoyaki-pipe : runs vm commands on host
+
+# maybe make this a local dir instead
+pipe=/var/lib/docker/volumes/takoyaki-backend_takoyaki-app-pipe/_data/pipe
+
+while true; do
+while read -r command; do
+    echo "$command"
+    sleep 1s
+done < "$pipe"
+done
+
+
