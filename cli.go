@@ -1,15 +1,14 @@
-
 package main
 
 import (
-	"fmt"
-	"strconv"
 	"encoding/json"
+	"fmt"
 	"github.com/urfave/cli/v2"
+	"strconv"
 )
 
 var App = &cli.App{
-	Name: "takoyaki",
+	Name:  "takoyaki",
 	Usage: "run and manage virtual private servers",
 	Commands: []*cli.Command{
 		{
@@ -19,9 +18,9 @@ var App = &cli.App{
 			Action:  serverAction,
 		},
 		{
-			Name:   "db",
+			Name:    "db",
 			Aliases: []string{"d"},
-			Usage:  "manage the database",
+			Usage:   "manage the database",
 			Subcommands: []*cli.Command{
 				{
 					Name:   "migrate",
@@ -31,9 +30,9 @@ var App = &cli.App{
 			},
 		},
 		{
-			Name:   "request",
+			Name:    "request",
 			Aliases: []string{"r"},
-			Usage:  "manage user requests",
+			Usage:   "manage user requests",
 			Subcommands: []*cli.Command{
 				{
 					Name:   "list",
@@ -41,24 +40,24 @@ var App = &cli.App{
 					Action: requestListAction,
 				},
 				{
-					Name:   "approve",
-					Usage:  "approve requests",
-					Flags:  []cli.Flag{
+					Name:  "approve",
+					Usage: "approve requests",
+					Flags: []cli.Flag{
 						&cli.BoolFlag{
-							Name: "all",
-							Usage: "approve all pending requests",
+							Name:    "all",
+							Usage:   "approve all pending requests",
 							Aliases: []string{"a"},
 						},
 					},
 					Action: requestApproveAction,
 				},
 				{
-					Name:   "reject",
-					Usage:  "reject requests",
-					Flags:  []cli.Flag{
+					Name:  "reject",
+					Usage: "reject requests",
+					Flags: []cli.Flag{
 						&cli.BoolFlag{
-							Name: "all",
-							Usage: "reject all pending requests",
+							Name:    "all",
+							Usage:   "reject all pending requests",
 							Aliases: []string{"a"},
 						},
 					},
@@ -73,39 +72,39 @@ func serverAction(c *cli.Context) error {
 
 	StartServer()
 
-    return nil
+	return nil
 }
 
 func dbMigrateAction(c *cli.Context) error {
 
 	db, err := DBConnection()
 	if err != nil {
-        return cli.Exit("Could not establish connection to database", 1)
+		return cli.Exit("Could not establish connection to database", 1)
 	}
 
-    err = DBMigrate(db)
+	err = DBMigrate(db)
 	if err != nil {
-        return cli.Exit("Migration failed", 1)
+		return cli.Exit("Migration failed", 1)
 	}
 
-    return nil
+	return nil
 }
 
 func requestListAction(c *cli.Context) error {
 
 	db, err := DBConnection()
 	if err != nil {
-        return cli.Exit("Could not establish connection to database", 1)
+		return cli.Exit("Could not establish connection to database", 1)
 	}
 
 	createRequests, err := DBRequestListWithPurpose(db, REQUEST_PURPOSE_VPS_CREATE)
 	if err != nil {
-        return cli.Exit("Could not fetch create requests from db", 1)
+		return cli.Exit("Could not fetch create requests from db", 1)
 	}
 
 	upgradeRequests, err := DBRequestListWithPurpose(db, REQUEST_PURPOSE_VPS_UPGRADE)
 	if err != nil {
-        return cli.Exit("Could not fetch upgrade requests from db", 1)
+		return cli.Exit("Could not fetch upgrade requests from db", 1)
 	}
 
 	fmt.Printf("VPS CREATION REQUESTS =-=-=-=-=-=-=\n")
@@ -140,21 +139,21 @@ func requestListAction(c *cli.Context) error {
 		)
 	}
 
-    return nil
+	return nil
 }
 
 func requestApproveAction(c *cli.Context) error {
 
 	db, err := DBConnection()
 	if err != nil {
-        return cli.Exit("Could not establish connection to database", 1)
+		return cli.Exit("Could not establish connection to database", 1)
 	}
 
 	if c.Bool("all") {
 	}
 
 	if c.NArg() != 1 {
-        return cli.Exit("Please pass in only one request ID", 1)
+		return cli.Exit("Please pass in only one request ID", 1)
 	}
 
 	requestID, err := strconv.ParseUint(c.Args().Get(0), 10, 64)
@@ -189,19 +188,18 @@ func requestApproveAction(c *cli.Context) error {
 
 		// add vps to database
 		newVPS := VPS{
-			DisplayName: requestData.DisplayName,
+			DisplayName:  requestData.DisplayName,
 			InternalName: vmName,
-			UserID: requestData.UserID,
-			RAM: requestData.RAM,
-			CPU: requestData.CPU,
-			Disk: requestData.Disk,
-			OS: requestData.OS,
+			UserID:       requestData.UserID,
+			RAM:          requestData.RAM,
+			CPU:          requestData.CPU,
+			Disk:         requestData.Disk,
+			OS:           requestData.OS,
 		}
 		err = DBVPSCreate(db, newVPS)
 		if err != nil {
 			return cli.Exit("Failed inserting vm into db", 1)
 		}
-
 
 	default:
 		return cli.Exit("Invalid request type", 1)
@@ -210,26 +208,26 @@ func requestApproveAction(c *cli.Context) error {
 	// remove the request after it is processed
 	err = DBRequestDelete(db, uint(requestID))
 	if err != nil {
-        return cli.Exit("Error deleting request", 1)
+		return cli.Exit("Error deleting request", 1)
 	}
 
-    return nil
+	return nil
 }
 
 func requestRejectAction(c *cli.Context) error {
 
 	db, err := DBConnection()
 	if err != nil {
-        return cli.Exit("Could not establish connection to database", 1)
+		return cli.Exit("Could not establish connection to database", 1)
 	}
 
 	if c.Bool("all") {
 		err = DBRequestTruncate(db)
-        return cli.Exit("Failed to delete all requests", 1)
+		return cli.Exit("Failed to delete all requests", 1)
 	}
 
 	if c.NArg() != 1 {
-        return cli.Exit("Please pass in only one request ID", 1)
+		return cli.Exit("Please pass in only one request ID", 1)
 	}
 
 	requestID, err := strconv.ParseUint(c.Args().Get(0), 10, 64)
@@ -239,9 +237,8 @@ func requestRejectAction(c *cli.Context) error {
 
 	err = DBRequestDelete(db, uint(requestID))
 	if err != nil {
-        return cli.Exit("Error deleting request", 1)
+		return cli.Exit("Error deleting request", 1)
 	}
 
-    return nil
+	return nil
 }
-

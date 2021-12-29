@@ -6,8 +6,8 @@ type HTTPError interface {
 }
 
 type HTTPStatusError struct {
-	Code        int
-	Err         error
+	Code int
+	Err  error
 }
 
 func (se HTTPStatusError) Error() string {

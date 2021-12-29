@@ -1,12 +1,12 @@
 package main
 
 import (
-    "fmt"
-    "os"
+	"fmt"
+	"os"
 
-	"gorm.io/gorm"
-	"gorm.io/driver/postgres"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func DBConnection() (*gorm.DB, error) {
@@ -20,9 +20,11 @@ func DBConnection() (*gorm.DB, error) {
 		os.Getenv("DB_NAME"),
 	)
 	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
-    if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
-    return db, nil
+	return db, nil
 }
 
 func DBMigrate(db *gorm.DB) error {
@@ -33,7 +35,9 @@ func DBMigrate(db *gorm.DB) error {
 			&VPS{},
 			&Request{},
 		)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 
 		return nil
 	})
@@ -46,7 +50,9 @@ func DBMigrate(db *gorm.DB) error {
 func DBUserRegister(db *gorm.DB, user *User) (uint, error) {
 
 	err := db.Create(user).Error
-	if err != nil { return 0, err }
+	if err != nil {
+		return 0, err
+	}
 
 	return user.ID, nil
 }
@@ -60,11 +66,15 @@ func DBUserCheckCreds(db *gorm.DB, email string, password string) (uint, error) 
 		Where("email = ?", email).
 		First(&loginUser).
 		Error
-	if err != nil { return 0, err }
+	if err != nil {
+		return 0, err
+	}
 
 	// maybe move the bcrypt stuff into it's own function
 	err = bcrypt.CompareHashAndPassword([]byte(loginUser.Password), []byte(password))
-	if err != nil { return 0, err }
+	if err != nil {
+		return 0, err
+	}
 
 	return loginUser.ID, nil
 }
@@ -77,7 +87,9 @@ func DBUserCheckRegistered(db *gorm.DB, email string) (bool, error) {
 		Where("email = ?", email).
 		Find(&matches).
 		Error
-	if err != nil { return true, err }
+	if err != nil {
+		return true, err
+	}
 
 	return len(matches) != 0, nil
 }
@@ -89,7 +101,9 @@ func DBUserOwnsVPS(db *gorm.DB, userID uint, vpsID uint) (bool, error) {
 		Where("id = ? AND user_id = ?", vpsID, userID).
 		Find(&matches).
 		Error
-	if err != nil { return false, err }
+	if err != nil {
+		return false, err
+	}
 
 	return len(matches) != 0, nil
 }
@@ -98,7 +112,9 @@ func DBVPSGetUserAll(db *gorm.DB, userID uint) ([]VPS, error) {
 
 	allVPS := []VPS{}
 	err := db.Where("user_id = ?", userID).Find(&allVPS).Error
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	return allVPS, nil
 }
@@ -107,7 +123,9 @@ func DBVPSGet(db *gorm.DB, vpsID uint) (VPS, error) {
 
 	vpsInfo := VPS{}
 	err := db.Where("id = ?", vpsID).Find(&vpsInfo).Error
-	if err != nil { return VPS{}, err }
+	if err != nil {
+		return VPS{}, err
+	}
 
 	return vpsInfo, nil
 }
@@ -171,4 +189,3 @@ func DBRequestTruncate(db *gorm.DB) error {
 	// gorm will not execute batch delete without a condition
 	return db.Where("1 = 1").Delete(&Request{}).Error
 }
-
