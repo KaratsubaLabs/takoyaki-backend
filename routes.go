@@ -244,7 +244,7 @@ type vpsInfoRequest struct {
 	VPSName      string          `json:"vps_name" validate:"required"`
 }
 type vpsInfoResponse struct {
-	AllVPS       []VPS           `json:"all_vps"`
+	AllVPS       []VPSInfo       `json:"all_vps"`
 }
 func vpsInfoHandler(w http.ResponseWriter, r *http.Request) error {
 
@@ -263,7 +263,12 @@ func vpsInfoHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	json.NewEncoder(w).Encode(vpsInfoResponse{AllVPS: allUserVPS})
+	var allUserVPSInfo []VPSInfo
+    for _, vps := range allUserVPS {
+        allUserVPSInfo = append(allUserVPSInfo, VPSToVPSInfo(vps))
+    }
+
+	json.NewEncoder(w).Encode(vpsInfoResponse{AllVPS: allUserVPSInfo})
 
 	return nil
 }
@@ -275,8 +280,8 @@ type vpsCreateRequest struct {
 	Username      string         `json:"username"               validate:"required,max=32"`
 	Password      string         `json:"password"               validate:"required"`
 	SSHKey        string         `json:"ssh_key"`
-	RAM           int            `json:"ram"                    validate:"required,min=1,max=4"`
-	CPU           int            `json:"cpu"                    validate:"required,min=1,max=4"`
+	RAM           int            `json:"ram"                    validate:"required,min=1,max=16"`
+	CPU           int            `json:"cpu"                    validate:"required,min=1,max=8"`
 	Disk          int            `json:"disk"                   validate:"required,min=5,max=50"`
 	OS            string         `json:"os"                     validate:"required"`
 	Message       string         `json:"message"`
@@ -504,7 +509,7 @@ func vpsSnapshotHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type requestListResponse struct {
-	RequestList      []Request      `json:"request_list"`
+	RequestList      []RequestInfo      `json:"request_list"`
 }
 func requestListHandler(w http.ResponseWriter, r *http.Request) error {
 
@@ -523,7 +528,12 @@ func requestListHandler(w http.ResponseWriter, r *http.Request) error {
         return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	json.NewEncoder(w).Encode(requestListResponse{RequestList: userRequests})
+    var userRequestInfos []RequestInfo
+    for _, request := range userRequests {
+        userRequestInfos = append(userRequestInfos, RequestToRequestInfo(request))
+    }
+
+	json.NewEncoder(w).Encode(requestListResponse{RequestList: userRequestInfos})
 
 	return nil
 }

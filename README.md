@@ -86,12 +86,14 @@ $ sudo rm -rf db/data/
 - [x] figure out where to put temp files (cidata.iso etc) for when creating vps
 - [x] jwt auth
 - [x] look at database transactions (+ are they really needed)
-- [ ] write the routes
+- [x] write the routes
 - [x] allow optional args when configuring vps (ie ssh key)
 - [ ] add tests? (might be overkill + annoying)
 - [ ] get progress of creating vps to show to frontend (possibly)
 - [ ] snapshot requests
 - [ ] look into using RLS
-- [ ] return ip address and state of vm as well in vps info endpoint
+- [ ] return ip address and state of vm as well in vps info endpoint + look into vm networking
 - [x] execute vm commands on host
+- [ ] refactor project into multiple modules
+- [ ] rewrite api
 

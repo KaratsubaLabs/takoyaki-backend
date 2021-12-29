@@ -60,3 +60,4 @@ type VPSUpgradeRequestData struct {
     CPU           int
     Disk          int
 }
+
