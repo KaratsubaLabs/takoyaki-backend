@@ -1,9 +1,9 @@
 package main
 
 import (
+	"strings"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"time"
 )
@@ -21,39 +21,20 @@ const VolumePoolName = "vps"
 const CloudImageDir = "/home/pinosaur/Temp/cloud-img"
 const SnapshotDir = "/snapshots"
 
+// TODO: limitation, buildMetadataFile and buildUserdataFile can not contain new lines
+// possibly move the entirety of create vps to host side and have takoyaki send the vps data over directly
 func buildMetadataFile(hostname string) string {
-	return fmt.Sprintf(`
-instance-id: %s
-local-hostname: %s
-`, hostname, hostname)
+	return fmt.Sprintf("local-hostname: %s", hostname)
 }
 
 func buildUserdataFile(username string, password string, sshKey string) string {
 
 	// TODO: validate ssh key
 	if sshKey == "" {
-		return fmt.Sprintf(`
-#cloud-config
-users:
-  - name: %s
-    groups: sudo
-    shell: /bin/bash
-    passwd: %s
-    lock_passwd: false
-`, username, password)
+		return fmt.Sprintf("users: [{ name: %s, groups: sudo, shell: /bin/bash, passwd: %s, lock_passwd: false }]", username, password)
 	}
 
-	return fmt.Sprintf(`
-#cloud-config
-users:
-  - name: %s
-    groups: sudo
-    shell: /bin/bash
-    passwd: %s
-    lock_passwd: false
-    ssh_authorized_keys:
-      - %s
-`, username, password, sshKey)
+	return fmt.Sprintf("users: [{ name: %s, groups: sudo, shell: /bin/bash, passwd: %s, lock_passwd: false, ssh_authorized_keys: [ %s ] }]", username, password, sshKey)
 }
 
 func makeUserPassword(rawPassword string) (string, error) {
@@ -61,7 +42,7 @@ func makeUserPassword(rawPassword string) (string, error) {
 	cmd := []string{"mkpasswd", "--method=SHA-512", "--rounds=4096", rawPassword}
 	hashedPass, err := RunCommand(cmd)
 
-	return hashedPass, err
+	return strings.TrimSuffix(hashedPass, "\n"), err
 }
 
 // run these as a go routine since they block
@@ -73,13 +54,13 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 	// check if vm already exists
 
 	// create temp dir
-	tempDir, err := os.MkdirTemp("", "takoyaki-*")
-	if err != nil {
+	tempDir := fmt.Sprintf("/tmp/takoyaki-%s", vmName)
+	cmd := []string {
+		"mkdir", tempDir,
+	}
+	if err := RunCommandOnHost(cmd); err != nil {
 		return err
 	}
-
-	fmt.Printf("%s\n", tempDir)
-	defer os.RemoveAll(tempDir)
 
 	// some vars
 	cidataLocation := filepath.Join(tempDir, "cidata.iso")
@@ -97,8 +78,10 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 
 	// generate meta-data and user-data files
 	metadataFile := buildMetadataFile(config.Hostname)
-	err = WriteToFile(metadataLocation, metadataFile)
-	if err != nil {
+	cmd = []string{
+		"echo", "'"+metadataFile+"'", ">", metadataLocation,
+	}
+	if err := RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -111,12 +94,14 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 
 	userdataFile := buildUserdataFile(config.Username, hashedPass, config.SSHKey)
 	fmt.Printf("userdata file =-=-=-=-=\n%s", userdataFile)
-	err = WriteToFile(userdataLocation, userdataFile)
-	if err != nil {
+	cmd = []string{
+		"echo", "'"+userdataFile+"'", ">", userdataLocation,
+	}
+	if err := RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
-	cmd := []string{
+	cmd = []string{
 		"genisoimage", "-output", cidataLocation, "-V",
 		"cidata", "-r", "-J", userdataLocation, metadataLocation,
 	}
@@ -156,6 +141,13 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 		"--disk", "path=" + cidataLocation + ",device=cdrom",
 		"--graphics", "vnc,port=5911,listen=127.0.0.1", // get rid of this later
 		"--noautoconsole",
+	}
+	if err := RunCommandOnHost(cmd); err != nil {
+		return err
+	}
+
+	cmd = []string {
+		"rm", "-rf", tempDir,
 	}
 	if err := RunCommandOnHost(cmd); err != nil {
 		return err

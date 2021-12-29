@@ -1,7 +1,7 @@
 #!/bin/sh
 
 api_url='http://localhost:3000'
-user_token=''
+user_token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOjEsImV4cCI6MTY0MTA2MTk5MH0.szSuzYXHHZ7qMluZHlJJr5Dq9uv20R6uxzzEMQbT6CA'
 
 register() {
     curl -v -H 'Content-Type: application/json' \
@@ -22,15 +22,15 @@ vps_create() {
         -X POST \
         -H "x-access-token: $user_token" \
         -d '{"display_name": "pinovps", "hostname": "pinovpspeee", "username": "pinosaur", "password": "abc123", "ram": 2, "cpu": 1, "disk": 25, "os": "ubuntu"}' \
-        "${api_url}/vps/create"
+        "${api_url}/vps"
 }
 
 vps_delete() {
     curl -v -H 'Content-Type: application/json' \
-        -X POST \
+        -X DELETE \
         -H "x-access-token: $user_token" \
         -d '{"vps_id": 1}' \
-        "${api_url}/vps/delete"
+        "${api_url}/vps"
 }
 
 case $1 in

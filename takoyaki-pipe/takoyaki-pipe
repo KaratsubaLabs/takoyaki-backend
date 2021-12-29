@@ -7,7 +7,8 @@ pipe=/var/lib/docker/volumes/takoyaki-backend_takoyaki-app-pipe/_data/pipe
 
 while true; do
 while read -r command; do
-    echo "$command"
+    echo "EVALUATING: $command"
+    eval "$command"
     sleep 1s
 done < "$pipe"
 done

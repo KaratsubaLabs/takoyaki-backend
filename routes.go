@@ -22,8 +22,11 @@ var (
 type CustomHandler = func(http.ResponseWriter, *http.Request) error
 
 type routeInfo struct {
-	route      string
-	methods    []string // possibly restrict to certain strings (ie POST, GET)
+	route   string
+	methods map[string]methodEndpoint
+}
+
+type methodEndpoint struct {
 	authRoute  bool
 	bodySchema interface{}
 	handlerFn  CustomHandler
@@ -31,21 +34,25 @@ type routeInfo struct {
 
 func (info routeInfo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	var handlerWithMiddleware http.Handler = ErrorMiddleware(info.handlerFn)
+	// find which method handler to use
+	endpoint, ok := info.methods[r.Method]
+	if !ok {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	var handlerWithMiddleware http.Handler = ErrorMiddleware(endpoint.handlerFn)
 
 	// validate + parse body (if applicable)
-	if info.bodySchema != nil {
+	if endpoint.bodySchema != nil {
 		handlerWithMiddleware = ValidationMiddleware(handlerWithMiddleware)
-		handlerWithMiddleware = ParseBodyJSONMiddleware(info.bodySchema, handlerWithMiddleware)
+		handlerWithMiddleware = ParseBodyJSONMiddleware(endpoint.bodySchema, handlerWithMiddleware)
 	}
 
 	// restrict auth (if applicable)
-	if info.authRoute {
+	if endpoint.authRoute {
 		handlerWithMiddleware = AuthMiddleware(handlerWithMiddleware)
 	}
-
-	// restrict method of request
-	handlerWithMiddleware = RestrictMethodMiddleware(info.methods, handlerWithMiddleware)
 
 	// delegate to handler
 	handlerWithMiddleware.ServeHTTP(w, r)
@@ -54,100 +61,86 @@ func (info routeInfo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 var routeSchema = []routeInfo{
 	{
-		route:     "/ping",
-		methods:   []string{"POST"},
-		authRoute: false,
-		handlerFn: pingHandler,
+		route: "/ping",
+		methods: map[string]methodEndpoint{
+			"POST": methodEndpoint{
+				authRoute: false,
+				handlerFn: pingHandler,
+			},
+		},
 	},
 	{
-		route:      "/register",
-		methods:    []string{"POST"},
-		authRoute:  false,
-		bodySchema: &registerRequest{},
-		handlerFn:  registerHandler,
+		route: "/register",
+		methods: map[string]methodEndpoint{
+			"POST": methodEndpoint{
+				authRoute:  false,
+				bodySchema: &registerRequest{},
+				handlerFn:  registerHandler,
+			},
+		},
 	},
 	{
-		route:      "/login",
-		methods:    []string{"POST"},
-		authRoute:  false,
-		bodySchema: &loginRequest{},
-		handlerFn:  loginHandler,
+		route: "/login",
+		methods: map[string]methodEndpoint{
+			"POST": methodEndpoint{
+				authRoute:  false,
+				bodySchema: &loginRequest{},
+				handlerFn:  loginHandler,
+			},
+		},
 	},
 	{
-		route:      "/vps/info",
-		methods:    []string{"GET"},
-		authRoute:  true,
-		bodySchema: &vpsInfoRequest{},
-		handlerFn:  vpsInfoHandler,
+		route: "/vps",
+		methods: map[string]methodEndpoint{
+			"GET": methodEndpoint{
+				authRoute:  true,
+				bodySchema: &vpsInfoRequest{},
+				handlerFn:  vpsInfoHandler,
+			},
+			"POST": methodEndpoint{
+				authRoute:  true,
+				bodySchema: &vpsCreateRequest{},
+				handlerFn:  vpsCreateHandler,
+			},
+			"DELETE": methodEndpoint{
+				authRoute:  true,
+				bodySchema: &vpsDeleteRequest{},
+				handlerFn:  vpsDeleteHandler,
+			},
+		},
 	},
-	{
-		route:      "/vps/create",
-		methods:    []string{"POST"},
-		authRoute:  true,
-		bodySchema: &vpsCreateRequest{},
-		handlerFn:  vpsCreateHandler,
-	},
-	{
-		route:      "/vps/delete",
-		methods:    []string{"POST"},
-		authRoute:  true,
-		bodySchema: &vpsDeleteRequest{},
-		handlerFn:  vpsDeleteHandler,
-	},
-	{
-		route:      "/vps/start",
-		methods:    []string{"POST"},
-		authRoute:  true,
-		bodySchema: &vpsStartRequest{},
-		handlerFn:  vpsStartHandler,
-	},
-	{
-		route:      "/vps/stop",
-		methods:    []string{"POST"},
-		authRoute:  true,
-		bodySchema: &vpsStopRequest{},
-		handlerFn:  vpsStopHandler,
-	},
-	{
-		route:      "/vps/snapshot",
-		methods:    []string{"POST"},
-		authRoute:  true,
-		bodySchema: &vpsSnapshotRequest{},
-		handlerFn:  vpsSnapshotHandler,
-	},
+	/*
+		{
+	        route:      "/vps/action",
+			methods:   map[string]methodEndpoint{
+	        },
+	    }
+		{
+			route:      "/vps/start",
+			methods:    []string{"POST"},
+			authRoute:  true,
+			bodySchema: &vpsStartRequest{},
+			handlerFn:  vpsStartHandler,
+		},
+		{
+			route:      "/vps/stop",
+			methods:    []string{"POST"},
+			authRoute:  true,
+			bodySchema: &vpsStopRequest{},
+			handlerFn:  vpsStopHandler,
+		},
+		{
+			route:      "/vps/snapshot",
+			methods:    []string{"POST"},
+			authRoute:  true,
+			bodySchema: &vpsSnapshotRequest{},
+			handlerFn:  vpsSnapshotHandler,
+		},
+	*/
 }
 
 // ping endpoint for debug purposes
 func pingHandler(w http.ResponseWriter, r *http.Request) error {
-
-	/*
-		var newVPS = VPSConfig{
-			DisplayName: "pino-vps",
-			Hostname:    "pino-vps",
-			Username:    "pinosaur",
-			Password:    "$6$rounds=4096$Z7a9LgphTzzWHJbQ$Yp8C0xPXMJhE45/Q7JLo/OoAWODjlCDGH/Zdgb7FUaX5HeGdnYH4XXP13bWZldzDlSndSKSmDWTbot88ZRuJJ1",
-			SSHKey:      "ssh-rsa blah blah",
-			RAM:         RAM_HIGH,
-			CPU:         1,
-			Disk:        25,
-			OS:          "ubuntu",
-		}
-
-		err := VPSCreate(newVPS)
-		if err != nil {
-			return HTTPStatusError{http.StatusInternalServerError, err}
-		}
-
-		db, err := DBConnection()
-		if err != nil {
-	        return HTTPStatusError{http.StatusInternalServerError, err}
-		}
-
-		err = DBMigrate(db)
-		if err != nil {
-			return HTTPStatusError{http.StatusInternalServerError, err}
-		}
-	*/
 
 	return nil
 }

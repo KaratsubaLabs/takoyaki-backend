@@ -11,7 +11,7 @@ echo 'stopping containers...'
 docker-compose down
 
 echo 'removing db data...'
-sudo rm -rf db
+docker volume rm takoyaki-backend_takoyaki-database-data
 
 echo 'destroying all vms...'
 for domain in $(virsh -c qemu:///system list --name); do

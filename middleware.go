@@ -71,17 +71,6 @@ func ParseBodyJSONMiddleware(bodySchema interface{}, next http.Handler) http.Han
 	})
 }
 
-// allows only one type of method to be used on endpoint
-func RestrictMethodMiddleware(methods []string, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !ContainsString(methods, r.Method) {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
 // checks auth
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

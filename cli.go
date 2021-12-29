@@ -183,7 +183,7 @@ func requestApproveAction(c *cli.Context) error {
 		// perform the creation
 		err = VPSCreate(vmName, requestData)
 		if err != nil {
-			return cli.Exit("Failed creating vm", 1)
+			return cli.Exit(fmt.Sprintf("Failed creating vm\n%+v", err), 1)
 		}
 
 		// add vps to database

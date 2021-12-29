@@ -70,14 +70,6 @@ Next we can start the containers
 $ docker-compose up --build
 ```
 
-## RESETING THE DATABASE
-
-During testing, if it happens that you wish to reset the database, simply
-remove the directory:
-```
-$ sudo rm -rf db/data/
-```
-
 ## TODO
 
 - [x] database initialization migration (+ shell interface to init db)
@@ -96,4 +88,5 @@ $ sudo rm -rf db/data/
 - [x] execute vm commands on host
 - [ ] refactor project into multiple modules
 - [ ] rewrite api
+- [ ] move virt specific commands to host side executable
 
