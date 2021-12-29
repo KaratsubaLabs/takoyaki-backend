@@ -97,6 +97,7 @@ var routeSchema = []routeInfo{
 				bodySchema: &vpsInfoRequest{},
 				handlerFn:  vpsInfoHandler,
 			},
+            // TODO this technically should be under request POST endpoint?
 			"POST": methodEndpoint{
 				authRoute:  true,
 				bodySchema: &vpsCreateRequest{},
@@ -109,34 +110,30 @@ var routeSchema = []routeInfo{
 			},
 		},
 	},
-	/*
-		{
-	        route:      "/vps/action",
-			methods:   map[string]methodEndpoint{
-	        },
-	    }
-		{
-			route:      "/vps/start",
-			methods:    []string{"POST"},
-			authRoute:  true,
-			bodySchema: &vpsStartRequest{},
-			handlerFn:  vpsStartHandler,
-		},
-		{
-			route:      "/vps/stop",
-			methods:    []string{"POST"},
-			authRoute:  true,
-			bodySchema: &vpsStopRequest{},
-			handlerFn:  vpsStopHandler,
-		},
-		{
-			route:      "/vps/snapshot",
-			methods:    []string{"POST"},
-			authRoute:  true,
-			bodySchema: &vpsSnapshotRequest{},
-			handlerFn:  vpsSnapshotHandler,
-		},
-	*/
+    {
+        route: "/vps/action",
+		methods: map[string]methodEndpoint{
+			"POST": methodEndpoint{
+                authRoute:  true,
+                bodySchema: &vpsActionRequest{},
+                handlerFn:  vpsActionHandler,
+            },
+        },
+    },
+    {
+        route: "/request",
+		methods: map[string]methodEndpoint{
+			"GET": methodEndpoint{
+                authRoute:  true,
+                handlerFn:  requestListHandler,
+            },
+			"DELETE": methodEndpoint{
+                authRoute:  true,
+                bodySchema: &requestDeleteRequest{},
+                handlerFn:  requestDeleteHandler,
+            },
+        },
+    },
 }
 
 // ping endpoint for debug purposes
@@ -383,14 +380,13 @@ func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-type vpsStartRequest struct {
-	VPSID uint `json:"vps_id" validate:"required"`
+type vpsActionRequest struct {
+	VPSID       uint    `json:"vps_id"      validate:"required"`
+    ActionType  string  `json:"action_type" validate:"required"` // TODO: add validation for this
 }
+func vpsActionHandler(w http.ResponseWriter, r *http.Request) error {
 
-func vpsStartHandler(w http.ResponseWriter, r *http.Request) error {
-
-	// TODO: this is a LOT of duplicated code, make this better
-	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*vpsStartRequest)
+	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*vpsActionRequest)
 	if !ok {
 		return HTTPStatusError{http.StatusInternalServerError, nil}
 	}
@@ -418,102 +414,42 @@ func vpsStartHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	err = VPSStart(vpsInfo.InternalName)
-	if err != nil {
-		return HTTPStatusError{http.StatusInternalServerError, err}
-	}
+    switch parsedBody.ActionType {
+        case "start": {
 
-	return nil
-}
+            err = VPSStart(vpsInfo.InternalName)
+            if err != nil {
+                return HTTPStatusError{http.StatusInternalServerError, err}
+            }
 
-type vpsStopRequest struct {
-	VPSID uint `json:"vps_id" validate:"required"`
-}
+        }
+        case "stop": {
 
-func vpsStopHandler(w http.ResponseWriter, r *http.Request) error {
+            err = VPSStop(vpsInfo.InternalName)
+            if err != nil {
+                return HTTPStatusError{http.StatusInternalServerError, err}
+            }
 
-	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*vpsStopRequest)
-	if !ok {
-		return HTTPStatusError{http.StatusInternalServerError, nil}
-	}
+        }
+        case "snapshot": {
 
-	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
-	if !ok {
-		return HTTPStatusError{http.StatusInternalServerError, nil}
-	}
+            err = VPSSnapshot(vpsInfo.InternalName)
+            if err != nil {
+                return HTTPStatusError{http.StatusInternalServerError, err}
+            }
 
-	db, err := DBConnection()
-	if err != nil {
-		return HTTPStatusError{http.StatusInternalServerError, err}
-	}
+        }
+        default: {
+            return HTTPStatusError{http.StatusBadRequest, errors.New("invalid action types")}
+        }
+    }
 
-	ownsVPS, err := DBUserOwnsVPS(db, userID, parsedBody.VPSID)
-	if err != nil {
-		return HTTPStatusError{http.StatusInternalServerError, err}
-	}
-	if !ownsVPS {
-		return HTTPStatusError{http.StatusForbidden, errors.New("no permission to access vps")}
-	}
-
-	vpsInfo, err := DBVPSGet(db, parsedBody.VPSID)
-	if err != nil {
-		return HTTPStatusError{http.StatusInternalServerError, err}
-	}
-
-	err = VPSStop(vpsInfo.InternalName)
-	if err != nil {
-		return HTTPStatusError{http.StatusInternalServerError, err}
-	}
-
-	return nil
-}
-
-type vpsSnapshotRequest struct {
-	VPSID uint `json:"vps_id" validate:"required"`
-}
-
-func vpsSnapshotHandler(w http.ResponseWriter, r *http.Request) error {
-
-	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*vpsStopRequest)
-	if !ok {
-		return HTTPStatusError{http.StatusInternalServerError, nil}
-	}
-
-	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
-	if !ok {
-		return HTTPStatusError{http.StatusInternalServerError, nil}
-	}
-
-	db, err := DBConnection()
-	if err != nil {
-		return HTTPStatusError{http.StatusInternalServerError, err}
-	}
-
-	ownsVPS, err := DBUserOwnsVPS(db, userID, parsedBody.VPSID)
-	if err != nil {
-		return HTTPStatusError{http.StatusInternalServerError, err}
-	}
-	if !ownsVPS {
-		return HTTPStatusError{http.StatusForbidden, errors.New("no permission to access vps")}
-	}
-
-	vpsInfo, err := DBVPSGet(db, parsedBody.VPSID)
-	if err != nil {
-		return HTTPStatusError{http.StatusInternalServerError, err}
-	}
-
-	err = VPSSnapshot(vpsInfo.InternalName)
-	if err != nil {
-		return HTTPStatusError{http.StatusInternalServerError, err}
-	}
-
-	return nil
+    return nil
 }
 
 type requestListResponse struct {
 	RequestList []RequestInfo `json:"request_list"`
 }
-
 func requestListHandler(w http.ResponseWriter, r *http.Request) error {
 
 	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
@@ -584,3 +520,4 @@ func Routes(mux *http.ServeMux) {
 		mux.Handle(routeInfo.route, routeInfo)
 	}
 }
+
