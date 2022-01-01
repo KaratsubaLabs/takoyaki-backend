@@ -1,11 +1,12 @@
 package main
 
 import (
+	"github.com/KaratsubaLabs/takoyaki-backend/cli"
 	"os"
 )
 
 func main() {
 
-	App.Run(os.Args)
+	cli.App.Run(os.Args)
 
 }

@@ -1,4 +1,4 @@
-package main
+package db
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func DBConnection() (*gorm.DB, error) {
+func Connection() (*gorm.DB, error) {
 
 	connectionString := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -19,16 +19,16 @@ func DBConnection() (*gorm.DB, error) {
 		os.Getenv("DB_PASSWORD"),
 		os.Getenv("DB_NAME"),
 	)
-	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
+	conn, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 
-	return db, nil
+	return conn, nil
 }
 
-func DBMigrate(db *gorm.DB) error {
-	return db.Transaction(func(tsx *gorm.DB) error {
+func Migrate(conn *gorm.DB) error {
+	return conn.Transaction(func(tsx *gorm.DB) error {
 
 		err := tsx.AutoMigrate(
 			&User{},
@@ -47,9 +47,9 @@ func DBMigrate(db *gorm.DB) error {
  * directly in the client code
  */
 
-func DBUserRegister(db *gorm.DB, user *User) (uint, error) {
+func UserRegister(conn *gorm.DB, user *User) (uint, error) {
 
-	err := db.Create(user).Error
+	err := conn.Create(user).Error
 	if err != nil {
 		return 0, err
 	}
@@ -58,10 +58,10 @@ func DBUserRegister(db *gorm.DB, user *User) (uint, error) {
 }
 
 // returns user id on successful auth
-func DBUserCheckCreds(db *gorm.DB, email string, password string) (uint, error) {
+func UserCheckCreds(conn *gorm.DB, email string, password string) (uint, error) {
 
 	loginUser := User{}
-	err := db.
+	err := conn.
 		Select("id", "password").
 		Where("email = ?", email).
 		First(&loginUser).
@@ -80,10 +80,10 @@ func DBUserCheckCreds(db *gorm.DB, email string, password string) (uint, error) 
 }
 
 // check if username or email are already taken (true if not avaliable - possibly bad design)
-func DBUserCheckRegistered(db *gorm.DB, email string) (bool, error) {
+func UserCheckRegistered(conn *gorm.DB, email string) (bool, error) {
 
 	matches := []User{}
-	err := db.
+	err := conn.
 		Where("email = ?", email).
 		Find(&matches).
 		Error
@@ -94,10 +94,10 @@ func DBUserCheckRegistered(db *gorm.DB, email string) (bool, error) {
 	return len(matches) != 0, nil
 }
 
-func DBUserOwnsVPS(db *gorm.DB, userID uint, vpsID uint) (bool, error) {
+func UserOwnsVPS(conn *gorm.DB, userID uint, vpsID uint) (bool, error) {
 
 	matches := []VPS{}
-	err := db.
+	err := conn.
 		Where("id = ? AND user_id = ?", vpsID, userID).
 		Find(&matches).
 		Error
@@ -108,10 +108,10 @@ func DBUserOwnsVPS(db *gorm.DB, userID uint, vpsID uint) (bool, error) {
 	return len(matches) != 0, nil
 }
 
-func DBVPSGetUserAll(db *gorm.DB, userID uint) ([]VPS, error) {
+func VPSGetUserAll(conn *gorm.DB, userID uint) ([]VPS, error) {
 
 	allVPS := []VPS{}
-	err := db.Where("user_id = ?", userID).Find(&allVPS).Error
+	err := conn.Where("user_id = ?", userID).Find(&allVPS).Error
 	if err != nil {
 		return nil, err
 	}
@@ -119,10 +119,10 @@ func DBVPSGetUserAll(db *gorm.DB, userID uint) ([]VPS, error) {
 	return allVPS, nil
 }
 
-func DBVPSGet(db *gorm.DB, vpsID uint) (VPS, error) {
+func VPSGet(conn *gorm.DB, vpsID uint) (VPS, error) {
 
 	vpsInfo := VPS{}
-	err := db.Where("id = ?", vpsID).Find(&vpsInfo).Error
+	err := conn.Where("id = ?", vpsID).Find(&vpsInfo).Error
 	if err != nil {
 		return VPS{}, err
 	}
@@ -130,46 +130,46 @@ func DBVPSGet(db *gorm.DB, vpsID uint) (VPS, error) {
 	return vpsInfo, nil
 }
 
-func DBVPSCreate(db *gorm.DB, newVPS VPS) error {
+func VPSCreate(conn *gorm.DB, newVPS VPS) error {
 
-	err := db.Create(&newVPS).Error
+	err := conn.Create(&newVPS).Error
 	return err
 }
 
-func DBVPSDestroy(db *gorm.DB, vpsID uint) error {
+func VPSDestroy(conn *gorm.DB, vpsID uint) error {
 
-	err := db.Delete(&VPS{}, vpsID).Error
+	err := conn.Delete(&VPS{}, vpsID).Error
 	return err
 }
 
-func DBRequestListWithPurpose(db *gorm.DB, purpose uint) ([]Request, error) {
+func RequestListWithPurpose(conn *gorm.DB, purpose uint) ([]Request, error) {
 
 	request := []Request{}
-	err := db.Preload("User").Where("request_purpose = ?", purpose).Find(&request).Error
+	err := conn.Preload("User").Where("request_purpose = ?", purpose).Find(&request).Error
 
 	return request, err
 }
 
-func DBRequestListUser(db *gorm.DB, userID uint) ([]Request, error) {
+func RequestListUser(conn *gorm.DB, userID uint) ([]Request, error) {
 
 	requests := []Request{}
-	err := db.Where("user_id = ?", userID).Find(&requests).Error
+	err := conn.Where("user_id = ?", userID).Find(&requests).Error
 
 	return requests, err
 }
 
-func DBRequestByID(db *gorm.DB, requestID uint) (Request, error) {
+func RequestByID(conn *gorm.DB, requestID uint) (Request, error) {
 	request := Request{}
-	err := db.Where("id = ?", requestID).First(&request).Error
+	err := conn.Where("id = ?", requestID).First(&request).Error
 
 	return request, err
 }
 
 // did the given user create the request
-func DBRequestUserOwns(db *gorm.DB, userID uint, requestID uint) (bool, error) {
+func RequestUserOwns(conn *gorm.DB, userID uint, requestID uint) (bool, error) {
 
 	request := []Request{}
-	err := db.Where("id = ? AND user_id = ?", requestID, userID).Error
+	err := conn.Where("id = ? AND user_id = ?", requestID, userID).Error
 	if err != nil {
 		return false, err
 	}
@@ -177,15 +177,16 @@ func DBRequestUserOwns(db *gorm.DB, userID uint, requestID uint) (bool, error) {
 	return len(request) != 0, nil
 }
 
-func DBRequestCreate(db *gorm.DB, newRequest Request) error {
-	return db.Create(&newRequest).Error
+func RequestCreate(conn *gorm.DB, newRequest Request) error {
+	return conn.Create(&newRequest).Error
 }
 
-func DBRequestDelete(db *gorm.DB, requestID uint) error {
-	return db.Delete(&Request{}, requestID).Error
+func RequestDelete(conn *gorm.DB, requestID uint) error {
+	return conn.Delete(&Request{}, requestID).Error
 }
 
-func DBRequestTruncate(db *gorm.DB) error {
+func RequestTruncate(conn *gorm.DB) error {
 	// gorm will not execute batch delete without a condition
-	return db.Where("1 = 1").Delete(&Request{}).Error
+	// TODO this is retarded
+	return conn.Where("1 = 1").Delete(&Request{}).Error
 }

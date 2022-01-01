@@ -1,10 +1,15 @@
-package main
+package cli
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/urfave/cli/v2"
 	"strconv"
+
+	"github.com/KaratsubaLabs/takoyaki-backend/api"
+	"github.com/KaratsubaLabs/takoyaki-backend/db"
+	"github.com/KaratsubaLabs/takoyaki-backend/util"
+	"github.com/KaratsubaLabs/takoyaki-backend/vps"
 )
 
 var App = &cli.App{
@@ -70,19 +75,19 @@ var App = &cli.App{
 
 func serverAction(c *cli.Context) error {
 
-	StartServer()
+	api.StartServer()
 
 	return nil
 }
 
 func dbMigrateAction(c *cli.Context) error {
 
-	db, err := DBConnection()
+	conn, err := db.Connection()
 	if err != nil {
 		return cli.Exit("Could not establish connection to database", 1)
 	}
 
-	err = DBMigrate(db)
+	err = db.Migrate(conn)
 	if err != nil {
 		return cli.Exit("Migration failed", 1)
 	}
@@ -92,17 +97,17 @@ func dbMigrateAction(c *cli.Context) error {
 
 func requestListAction(c *cli.Context) error {
 
-	db, err := DBConnection()
+	conn, err := db.Connection()
 	if err != nil {
 		return cli.Exit("Could not establish connection to database", 1)
 	}
 
-	createRequests, err := DBRequestListWithPurpose(db, REQUEST_PURPOSE_VPS_CREATE)
+	createRequests, err := db.RequestListWithPurpose(conn, db.REQUEST_PURPOSE_VPS_CREATE)
 	if err != nil {
 		return cli.Exit("Could not fetch create requests from db", 1)
 	}
 
-	upgradeRequests, err := DBRequestListWithPurpose(db, REQUEST_PURPOSE_VPS_UPGRADE)
+	upgradeRequests, err := db.RequestListWithPurpose(conn, db.REQUEST_PURPOSE_VPS_UPGRADE)
 	if err != nil {
 		return cli.Exit("Could not fetch upgrade requests from db", 1)
 	}
@@ -111,7 +116,7 @@ func requestListAction(c *cli.Context) error {
 	fmt.Printf("Request ID | Email | RAM | CPU | Disk | OS\n")
 	for _, request := range createRequests {
 
-		requestData := VPSCreateRequestData{}
+		requestData := db.VPSCreateRequestData{}
 		err := json.Unmarshal([]byte(request.RequestData), &requestData)
 		if err != nil {
 			return cli.Exit("Error unmarshalling request data", 1)
@@ -127,7 +132,7 @@ func requestListAction(c *cli.Context) error {
 	fmt.Printf("Request ID | Email | RAM | CPU | Disk\n")
 	for _, request := range upgradeRequests {
 
-		requestData := VPSUpgradeRequestData{}
+		requestData := db.VPSUpgradeRequestData{}
 		err := json.Unmarshal([]byte(request.RequestData), &requestData)
 		if err != nil {
 			return cli.Exit("Error unmarshalling request data", 1)
@@ -144,7 +149,7 @@ func requestListAction(c *cli.Context) error {
 
 func requestApproveAction(c *cli.Context) error {
 
-	db, err := DBConnection()
+	conn, err := db.Connection()
 	if err != nil {
 		return cli.Exit("Could not establish connection to database", 1)
 	}
@@ -161,33 +166,33 @@ func requestApproveAction(c *cli.Context) error {
 		return cli.Exit("Invalid request ID", 1)
 	}
 
-	userRequest, err := DBRequestByID(db, uint(requestID))
+	userRequest, err := db.RequestByID(conn, uint(requestID))
 	if err != nil {
 		return cli.Exit("Error retriving user request", 1)
 	}
 
 	// do what needs to be done based on request type
 	switch userRequest.RequestPurpose {
-	case REQUEST_PURPOSE_VPS_CREATE:
+	case db.REQUEST_PURPOSE_VPS_CREATE:
 
 		// parse request data
-		requestData := VPSCreateRequestData{}
+		requestData := db.VPSCreateRequestData{}
 		err = json.Unmarshal([]byte(userRequest.RequestData), &requestData)
 		if err != nil {
 			return cli.Exit("Error parsing request data", 1)
 		}
 
 		// generate random name for vm
-		vmName := RandomString()
+		vmName := util.RandomString()
 
 		// perform the creation
-		err = VPSCreate(vmName, requestData)
+		err = vps.Create(vmName, requestData)
 		if err != nil {
 			return cli.Exit(fmt.Sprintf("Failed creating vm\n%+v", err), 1)
 		}
 
 		// add vps to database
-		newVPS := VPS{
+		newVPS := db.VPS{
 			DisplayName:  requestData.DisplayName,
 			InternalName: vmName,
 			UserID:       requestData.UserID,
@@ -196,7 +201,7 @@ func requestApproveAction(c *cli.Context) error {
 			Disk:         requestData.Disk,
 			OS:           requestData.OS,
 		}
-		err = DBVPSCreate(db, newVPS)
+		err = db.VPSCreate(conn, newVPS)
 		if err != nil {
 			return cli.Exit("Failed inserting vm into db", 1)
 		}
@@ -206,7 +211,7 @@ func requestApproveAction(c *cli.Context) error {
 	}
 
 	// remove the request after it is processed
-	err = DBRequestDelete(db, uint(requestID))
+	err = db.RequestDelete(conn, uint(requestID))
 	if err != nil {
 		return cli.Exit("Error deleting request", 1)
 	}
@@ -216,13 +221,13 @@ func requestApproveAction(c *cli.Context) error {
 
 func requestRejectAction(c *cli.Context) error {
 
-	db, err := DBConnection()
+	conn, err := db.Connection()
 	if err != nil {
 		return cli.Exit("Could not establish connection to database", 1)
 	}
 
 	if c.Bool("all") {
-		err = DBRequestTruncate(db)
+		err = db.RequestTruncate(conn)
 		return cli.Exit("Failed to delete all requests", 1)
 	}
 
@@ -235,7 +240,7 @@ func requestRejectAction(c *cli.Context) error {
 		return cli.Exit("Invalid request ID", 1)
 	}
 
-	err = DBRequestDelete(db, uint(requestID))
+	err = db.RequestDelete(conn, uint(requestID))
 	if err != nil {
 		return cli.Exit("Error deleting request", 1)
 	}

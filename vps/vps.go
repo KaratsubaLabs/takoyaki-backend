@@ -1,11 +1,14 @@
-package main
+package vps
 
 import (
-	"strings"
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/KaratsubaLabs/takoyaki-backend/db"
+	"github.com/KaratsubaLabs/takoyaki-backend/util"
 )
 
 type OSInfo struct {
@@ -40,13 +43,13 @@ func buildUserdataFile(username string, password string, sshKey string) string {
 func makeUserPassword(rawPassword string) (string, error) {
 
 	cmd := []string{"mkpasswd", "--method=SHA-512", "--rounds=4096", rawPassword}
-	hashedPass, err := RunCommand(cmd)
+	hashedPass, err := util.RunCommand(cmd)
 
 	return strings.TrimSuffix(hashedPass, "\n"), err
 }
 
 // run these as a go routine since they block
-func VPSCreate(vmName string, config VPSCreateRequestData) error {
+func Create(vmName string, config db.VPSCreateRequestData) error {
 
 	// TODO do some validation on config to make sure there is no
 	// script injection or insane settings going on
@@ -55,10 +58,10 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 
 	// create temp dir
 	tempDir := fmt.Sprintf("/tmp/takoyaki-%s", vmName)
-	cmd := []string {
+	cmd := []string{
 		"mkdir", tempDir,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -79,9 +82,9 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 	// generate meta-data and user-data files
 	metadataFile := buildMetadataFile(config.Hostname)
 	cmd = []string{
-		"echo", "'"+metadataFile+"'", ">", metadataLocation,
+		"echo", "'" + metadataFile + "'", ">", metadataLocation,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -95,9 +98,9 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 	userdataFile := buildUserdataFile(config.Username, hashedPass, config.SSHKey)
 	fmt.Printf("userdata file =-=-=-=-=\n%s", userdataFile)
 	cmd = []string{
-		"echo", "'"+userdataFile+"'", ">", userdataLocation,
+		"echo", "'" + userdataFile + "'", ">", userdataLocation,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -105,7 +108,7 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 		"genisoimage", "-output", cidataLocation, "-V",
 		"cidata", "-r", "-J", userdataLocation, metadataLocation,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -114,7 +117,7 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 		"virsh", "-c", "qemu:///system", "vol-create-as",
 		VolumePoolName, volumeName, fmt.Sprintf("%dG", config.Disk), "--format", "qcow2",
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -123,7 +126,7 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 		"virsh", "-c", "qemu:///system", "vol-upload",
 		"--pool", VolumePoolName, volumeName, cloudImg,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -142,14 +145,14 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 		"--graphics", "vnc,port=5911,listen=127.0.0.1", // get rid of this later
 		"--noautoconsole",
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
-	cmd = []string {
+	cmd = []string{
 		"rm", "-rf", tempDir,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -157,7 +160,7 @@ func VPSCreate(vmName string, config VPSCreateRequestData) error {
 }
 
 // possibly keep user data for recovery for a set amout of time
-func VPSDestroy(vmName string) error {
+func Destroy(vmName string) error {
 
 	volumeName := vmName + "-vol"
 
@@ -167,7 +170,7 @@ func VPSDestroy(vmName string) error {
 		"virsh", "-c", "qemu:///system",
 		"shutdown", vmName,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -175,7 +178,7 @@ func VPSDestroy(vmName string) error {
 		"virsh", "-c", "qemu:///system",
 		"destroy", vmName,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -183,7 +186,7 @@ func VPSDestroy(vmName string) error {
 		"virsh", "-c", "qemu:///system",
 		"undefine", "--nvram", vmName,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -191,7 +194,7 @@ func VPSDestroy(vmName string) error {
 		"virsh", "-c", "qemu:///system",
 		"vol-delete", "--pool", VolumePoolName, volumeName,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
@@ -199,12 +202,12 @@ func VPSDestroy(vmName string) error {
 }
 
 // when a user requests for vps specs to be upgraded
-func VPSUpgrade() error {
+func Upgrade() error {
 
 	return nil
 }
 
-func VPSSnapshot(vmName string) error {
+func Snapshot(vmName string) error {
 
 	now := time.Now().String()
 	snapshotName := fmt.Sprintf("snapshot-%s-%s", vmName, now)
@@ -214,38 +217,39 @@ func VPSSnapshot(vmName string) error {
 		"--domain", vmName,
 		"--name", filepath.Join(SnapshotDir, snapshotName),
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func VPSStart(vmName string) error {
+func Start(vmName string) error {
 
 	cmd := []string{
 		"virsh", "-c", "qemu:///system", "start", vmName,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func VPSStop(vmName string) error {
+func Stop(vmName string) error {
 
 	cmd := []string{
 		"virsh", "-c", "qemu:///system", "shutdown", vmName,
 	}
-	if err := RunCommandOnHost(cmd); err != nil {
+	if err := util.RunCommandOnHost(cmd); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func VPSRestart(vmName string) error {
+// maybe don't need this
+func Restart(vmName string) error {
 
 	return nil
 }

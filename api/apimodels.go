@@ -1,6 +1,7 @@
-package main
+package api
 
 import (
+	"github.com/KaratsubaLabs/takoyaki-backend/db"
 	"time"
 )
 
@@ -22,7 +23,7 @@ type RequestInfo struct {
 	Message string `json:"message"`
 }
 
-func VPSToVPSInfo(vps VPS) VPSInfo {
+func VPSToVPSInfo(vps db.VPS) VPSInfo {
 	return VPSInfo{
 		ID:           vps.ID,
 		DisplayName:  vps.DisplayName,
@@ -34,7 +35,7 @@ func VPSToVPSInfo(vps VPS) VPSInfo {
 	}
 }
 
-func RequestToRequestInfo(request Request) RequestInfo {
+func RequestToRequestInfo(request db.Request) RequestInfo {
 	return RequestInfo{
 		RequestTime:    request.RequestTime,
 		RequestPurpose: request.RequestPurpose,

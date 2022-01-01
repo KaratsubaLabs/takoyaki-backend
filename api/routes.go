@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"encoding/json"
@@ -6,6 +6,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"time"
+
+	"github.com/KaratsubaLabs/takoyaki-backend/db"
+	"github.com/KaratsubaLabs/takoyaki-backend/vps"
 )
 
 type ContextKey string
@@ -97,7 +100,7 @@ var routeSchema = []routeInfo{
 				bodySchema: &vpsInfoRequest{},
 				handlerFn:  vpsInfoHandler,
 			},
-            // TODO this technically should be under request POST endpoint?
+			// TODO this technically should be under request POST endpoint?
 			"POST": methodEndpoint{
 				authRoute:  true,
 				bodySchema: &vpsCreateRequest{},
@@ -110,30 +113,30 @@ var routeSchema = []routeInfo{
 			},
 		},
 	},
-    {
-        route: "/vps/action",
+	{
+		route: "/vps/action",
 		methods: map[string]methodEndpoint{
 			"POST": methodEndpoint{
-                authRoute:  true,
-                bodySchema: &vpsActionRequest{},
-                handlerFn:  vpsActionHandler,
-            },
-        },
-    },
-    {
-        route: "/request",
+				authRoute:  true,
+				bodySchema: &vpsActionRequest{},
+				handlerFn:  vpsActionHandler,
+			},
+		},
+	},
+	{
+		route: "/request",
 		methods: map[string]methodEndpoint{
 			"GET": methodEndpoint{
-                authRoute:  true,
-                handlerFn:  requestListHandler,
-            },
+				authRoute: true,
+				handlerFn: requestListHandler,
+			},
 			"DELETE": methodEndpoint{
-                authRoute:  true,
-                bodySchema: &requestDeleteRequest{},
-                handlerFn:  requestDeleteHandler,
-            },
-        },
-    },
+				authRoute:  true,
+				bodySchema: &requestDeleteRequest{},
+				handlerFn:  requestDeleteHandler,
+			},
+		},
+	},
 }
 
 // ping endpoint for debug purposes
@@ -157,14 +160,14 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusInternalServerError, nil}
 	}
 
-	// (possibly have db connection be part of the context)
-	db, err := DBConnection()
+	// (possibly have conn connection be part of the context)
+	conn, err := db.Connection()
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
 	// make sure user name and email are not already taken
-	registered, err := DBUserCheckRegistered(db, parsedBody.Email)
+	registered, err := db.UserCheckRegistered(conn, parsedBody.Email)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -179,11 +182,11 @@ func registerHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	newUser := User{
+	newUser := db.User{
 		Email:    parsedBody.Email,
 		Password: string(hashed),
 	}
-	userID, err := DBUserRegister(db, &newUser)
+	userID, err := db.UserRegister(conn, &newUser)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -213,12 +216,12 @@ func loginHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusInternalServerError, nil}
 	}
 
-	db, err := DBConnection()
+	conn, err := db.Connection()
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	userID, err := DBUserCheckCreds(db, parsedBody.Email, parsedBody.Password)
+	userID, err := db.UserCheckCreds(conn, parsedBody.Email, parsedBody.Password)
 	if err != nil {
 		return HTTPStatusError{http.StatusUnauthorized, err}
 	}
@@ -247,12 +250,12 @@ func vpsInfoHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusInternalServerError, nil}
 	}
 
-	db, err := DBConnection()
+	conn, err := db.Connection()
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	allUserVPS, err := DBVPSGetUserAll(db, userID)
+	allUserVPS, err := db.VPSGetUserAll(conn, userID)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -293,13 +296,13 @@ func vpsCreateHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusInternalServerError, nil}
 	}
 
-	db, err := DBConnection()
+	conn, err := db.Connection()
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
 	// TODO parse values for ram, cpu and disk
-	config := VPSCreateRequestData{
+	config := db.VPSCreateRequestData{
 		DisplayName: parsedBody.DisplayName,
 		Hostname:    parsedBody.Hostname,
 		UserID:      userID,
@@ -316,14 +319,14 @@ func vpsCreateHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	newRequest := Request{
+	newRequest := db.Request{
 		UserID:         userID,
 		RequestTime:    time.Now(),
-		RequestPurpose: REQUEST_PURPOSE_VPS_CREATE,
+		RequestPurpose: db.REQUEST_PURPOSE_VPS_CREATE,
 		RequestData:    string(configJSON),
 		Message:        parsedBody.Message,
 	}
-	err = DBRequestCreate(db, newRequest)
+	err = db.RequestCreate(conn, newRequest)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -347,12 +350,12 @@ func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusInternalServerError, nil}
 	}
 
-	db, err := DBConnection()
+	conn, err := db.Connection()
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	ownsVPS, err := DBUserOwnsVPS(db, userID, parsedBody.VPSID)
+	ownsVPS, err := db.UserOwnsVPS(conn, userID, parsedBody.VPSID)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -360,19 +363,19 @@ func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusForbidden, errors.New("no permission to access vps")}
 	}
 
-	vpsInfo, err := DBVPSGet(db, parsedBody.VPSID)
+	vpsInfo, err := db.VPSGet(conn, parsedBody.VPSID)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
 	// issue delete commands
-	err = VPSDestroy(vpsInfo.InternalName)
+	err = vps.Destroy(vpsInfo.InternalName)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
 	// remove from db
-	err = DBVPSDestroy(db, parsedBody.VPSID)
+	err = db.VPSDestroy(conn, parsedBody.VPSID)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -381,9 +384,10 @@ func vpsDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type vpsActionRequest struct {
-	VPSID       uint    `json:"vps_id"      validate:"required"`
-    ActionType  string  `json:"action_type" validate:"required"` // TODO: add validation for this
+	VPSID      uint   `json:"vps_id"      validate:"required"`
+	ActionType string `json:"action_type" validate:"required"` // TODO: add validation for this
 }
+
 func vpsActionHandler(w http.ResponseWriter, r *http.Request) error {
 
 	parsedBody, ok := r.Context().Value(ContextKeyParsedBody).(*vpsActionRequest)
@@ -396,12 +400,12 @@ func vpsActionHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusInternalServerError, nil}
 	}
 
-	db, err := DBConnection()
+	conn, err := db.Connection()
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	ownsVPS, err := DBUserOwnsVPS(db, userID, parsedBody.VPSID)
+	ownsVPS, err := db.UserOwnsVPS(conn, userID, parsedBody.VPSID)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -409,47 +413,52 @@ func vpsActionHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusForbidden, errors.New("no permission to access vps")}
 	}
 
-	vpsInfo, err := DBVPSGet(db, parsedBody.VPSID)
+	vpsInfo, err := db.VPSGet(conn, parsedBody.VPSID)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-    switch parsedBody.ActionType {
-        case "start": {
+	switch parsedBody.ActionType {
+	case "start":
+		{
 
-            err = VPSStart(vpsInfo.InternalName)
-            if err != nil {
-                return HTTPStatusError{http.StatusInternalServerError, err}
-            }
+			err = vps.Start(vpsInfo.InternalName)
+			if err != nil {
+				return HTTPStatusError{http.StatusInternalServerError, err}
+			}
 
-        }
-        case "stop": {
+		}
+	case "stop":
+		{
 
-            err = VPSStop(vpsInfo.InternalName)
-            if err != nil {
-                return HTTPStatusError{http.StatusInternalServerError, err}
-            }
+			err = vps.Stop(vpsInfo.InternalName)
+			if err != nil {
+				return HTTPStatusError{http.StatusInternalServerError, err}
+			}
 
-        }
-        case "snapshot": {
+		}
+	case "snapshot":
+		{
 
-            err = VPSSnapshot(vpsInfo.InternalName)
-            if err != nil {
-                return HTTPStatusError{http.StatusInternalServerError, err}
-            }
+			err = vps.Snapshot(vpsInfo.InternalName)
+			if err != nil {
+				return HTTPStatusError{http.StatusInternalServerError, err}
+			}
 
-        }
-        default: {
-            return HTTPStatusError{http.StatusBadRequest, errors.New("invalid action types")}
-        }
-    }
+		}
+	default:
+		{
+			return HTTPStatusError{http.StatusBadRequest, errors.New("invalid action types")}
+		}
+	}
 
-    return nil
+	return nil
 }
 
 type requestListResponse struct {
 	RequestList []RequestInfo `json:"request_list"`
 }
+
 func requestListHandler(w http.ResponseWriter, r *http.Request) error {
 
 	userID, ok := r.Context().Value(ContextKeyUserID).(uint)
@@ -457,12 +466,12 @@ func requestListHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusInternalServerError, nil}
 	}
 
-	db, err := DBConnection()
+	conn, err := db.Connection()
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
-	userRequests, err := DBRequestListUser(db, userID)
+	userRequests, err := db.RequestListUser(conn, userID)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -493,13 +502,13 @@ func requestDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusInternalServerError, nil}
 	}
 
-	db, err := DBConnection()
+	conn, err := db.Connection()
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
 
 	// check that user owns the request first
-	ownsRequest, err := DBRequestUserOwns(db, userID, parsedBody.RequestID)
+	ownsRequest, err := db.RequestUserOwns(conn, userID, parsedBody.RequestID)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -507,7 +516,7 @@ func requestDeleteHandler(w http.ResponseWriter, r *http.Request) error {
 		return HTTPStatusError{http.StatusForbidden, nil}
 	}
 
-	err = DBRequestDelete(db, parsedBody.RequestID)
+	err = db.RequestDelete(conn, parsedBody.RequestID)
 	if err != nil {
 		return HTTPStatusError{http.StatusInternalServerError, err}
 	}
@@ -520,4 +529,3 @@ func Routes(mux *http.ServeMux) {
 		mux.Handle(routeInfo.route, routeInfo)
 	}
 }
-
