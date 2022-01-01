@@ -5,6 +5,8 @@ go backend for からつばLABS' **project takoyaki** - the vps platform
 
 ## RUNNING FOR DEVELOPMENT
 
+NOTE: probably deprecating non-container takoyaki soon
+
 If you wish to run **takoyaki** without having to keep building docker
 containers, you can run it locally instead. Make sure you have a working go
 installation.
@@ -86,7 +88,7 @@ $ docker-compose up --build
 - [ ] look into using RLS
 - [ ] return ip address and state of vm as well in vps info endpoint + look into vm networking
 - [x] execute vm commands on host
-- [ ] refactor project into multiple modules
+- [x] refactor project into multiple modules
 - [x] rewrite api
 - [ ] move virt specific commands to host side executable
 - [ ] vps status

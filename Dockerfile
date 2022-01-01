@@ -5,11 +5,11 @@ RUN apk update
 RUN apk add mkpasswd
 
 COPY go.mod go.sum ./
+COPY .env ./
 
 RUN go mod download
 
-COPY *.go ./
-COPY .env ./
+COPY *.go api cli db util vps ./
 
-RUN go build -o /takoyaki
+RUN go build -o /takoyaki github.com/KaratsubaLabs/takoyaki-backend
 CMD [ "/takoyaki", "server" ]
