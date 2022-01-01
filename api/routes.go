@@ -57,6 +57,8 @@ func (info routeInfo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		handlerWithMiddleware = AuthMiddleware(handlerWithMiddleware)
 	}
 
+	handlerWithMiddleware = CorsMiddleware(handlerWithMiddleware)
+
 	// delegate to handler
 	handlerWithMiddleware.ServeHTTP(w, r)
 
@@ -66,7 +68,7 @@ var routeSchema = []routeInfo{
 	{
 		route: "/ping",
 		methods: map[string]methodEndpoint{
-			"POST": methodEndpoint{
+			"GET": methodEndpoint{
 				authRoute: false,
 				handlerFn: pingHandler,
 			},
@@ -141,6 +143,8 @@ var routeSchema = []routeInfo{
 
 // ping endpoint for debug purposes
 func pingHandler(w http.ResponseWriter, r *http.Request) error {
+
+	w.Write([]byte("Pong!\n"))
 
 	return nil
 }

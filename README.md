@@ -28,20 +28,20 @@ $ systemctl start takoyaki-pipe
 
 Now start the containers (this basically just runs docker-compose up):
 ```
-$ ./dev/init
+$ ./scripts/init
 ```
 and migrate the database
 ```
-$ ./dev/takocli db migrate
+$ ./scripts/takocli db migrate
 ```
 
 To stop the stack, simply run
 ```
-$ ./dev/stop
+$ ./scripts/stop
 ```
 or to purge the entire stack (deletes db data and vms), run:
 ```
-$ ./dev/purge
+$ ./scripts/purge
 ```
 
 ## TODO

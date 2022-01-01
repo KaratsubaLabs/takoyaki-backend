@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  proxy:
+    container_name: takoyaki-proxy
+    image: nginx:mainline-alpine
+    ports:
+      - 8000:80
+    volumes:
+      - ./dev/proxy:/etc/nginx/sites-enabled

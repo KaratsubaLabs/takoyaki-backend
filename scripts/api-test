@@ -3,6 +3,10 @@
 api_url='http://localhost:3000'
 user_token=''
 
+ping() {
+    curl -v \
+		"${api_url}/ping"
+}
 register() {
     curl -v -H 'Content-Type: application/json' \
         -X POST \
@@ -34,6 +38,7 @@ vps_delete() {
 }
 
 case $1 in
+    ping) ping;;
     register) register;;
     login) login;;
     vps_create) vps_create;;
