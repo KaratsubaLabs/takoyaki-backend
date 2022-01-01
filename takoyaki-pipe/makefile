@@ -6,7 +6,7 @@ SERVICE_DIR=/etc/systemd/system
 
 install:
 	cp takoyaki-pipe ${INSTALL_DIR}
-	cp takoyaki-pipe/takoyaki-pipe.service ${SERVICE_DIR}
+	cp takoyaki-pipe.service ${SERVICE_DIR}
 
 uninstall:
 	rm -f ${INSTALL_DIR}/takoyaki-pipe

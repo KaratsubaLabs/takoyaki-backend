@@ -1,0 +1,6 @@
+dev/
+.git
+docker-compose.yml
+Dockerfile
+dotenv.example
+README.md

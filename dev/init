@@ -1,13 +1,4 @@
 #!/bin/sh
 
 # start only database container
-docker-compose up -d database
-
-sleep 1s
-
-# set env vars
-export $(grep -v '^#' .env | xargs)
-
-# initialize database
-go run *.go db migrate
-
+docker-compose up --build

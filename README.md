@@ -1,52 +1,11 @@
 
 # takoyaki backend
 
-go backend for からつばLABS' **project takoyaki** - the vps platform
+go backend for からつばLABS' **project takoyaki** - the vps platform.
+**takoyaki** backend is a go api server that comes with a cli to do some
+administrative tasks like approve/decline vps requests.
 
-## RUNNING FOR DEVELOPMENT
-
-NOTE: probably deprecating non-container takoyaki soon
-
-If you wish to run **takoyaki** without having to keep building docker
-containers, you can run it locally instead. Make sure you have a working go
-installation.
-
-Make your own copy of `.env` by copying the provided `dotenv.example`
-file.
-```
-$ cp dotenv.example .env
-```
-
-Install packages
-```
-$ go mod download
-```
-
-Export environment variables from `.env` file
-```
-$ export $(grep -v '^#' .env | xargs)
-```
-
-Run the database container
-```
-$ docker-compose up -d db
-```
-
-Initialize/migrate the database
-```
-$ go run *.go db migrate
-```
-
-Run takoyaki
-```
-$ go run *.go server
-```
-
-There are also a couple of utility scripts for rapid development in `dev/`. Be
-very careful when running these as they will purge all of your containers and
-vms.
-
-## RUNNING FOR PRODUCTION
+## RUNNING THE STACK
 
 To be able to run the stack, **docker** and **docker-compose** are required.
 Consult the relevant documentation based on your system on how to get these set
@@ -67,9 +26,22 @@ $ systemctl enable takoyaki-pipe
 $ systemctl start takoyaki-pipe
 ```
 
-Next we can start the containers
+Now start the containers (this basically just runs docker-compose up):
 ```
-$ docker-compose up --build
+$ ./dev/init
+```
+and migrate the database
+```
+$ ./dev/takocli db migrate
+```
+
+To stop the stack, simply run
+```
+$ ./dev/stop
+```
+or to purge the entire stack (deletes db data and vms), run:
+```
+$ ./dev/purge
 ```
 
 ## TODO
@@ -93,4 +65,5 @@ $ docker-compose up --build
 - [ ] move virt specific commands to host side executable
 - [ ] vps status
 - [ ] possibly dockerize libvirt??
+- [ ] use proper go project structure with cmd/ and pkg/ dirs
 

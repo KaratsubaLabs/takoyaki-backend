@@ -237,7 +237,6 @@ func loginHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type vpsInfoRequest struct {
-	VPSName string `json:"vps_name" validate:"required"`
 }
 type vpsInfoResponse struct {
 	AllVPS []VPSInfo `json:"all_vps"`
