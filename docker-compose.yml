@@ -22,6 +22,16 @@ services:
       - takoyaki-database-data:/var/lib/postgresql/data
     restart: always
     command: -p $DB_PORT
+  proxy:
+    container_name: takoyaki-proxy
+    depends_on:
+      - app
+      - database
+    image: nginx:mainline-alpine
+    ports:
+      - 8000:80
+    volumes:
+      - ./dev/proxy:/etc/nginx/templates
 volumes:
   takoyaki-app-pipe: {}
   takoyaki-database-data: {}
