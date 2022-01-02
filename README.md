@@ -26,6 +26,12 @@ $ systemctl enable takoyaki-pipe
 $ systemctl start takoyaki-pipe
 ```
 
+Now create the named pipe file if it hasn't been done before (will automate
+this step later)
+```
+$ mkfifo /var/lib/docker/volumes/takoyaki-backend_api-pipe/_data/pipe
+```
+
 Now start the containers (this basically just runs docker-compose up):
 ```
 $ ./scripts/init

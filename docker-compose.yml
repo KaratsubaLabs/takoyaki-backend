@@ -1,15 +1,15 @@
 version: "3.8"
 services:
-  app:
-    container_name: takoyaki-app
+  api:
+    container_name: takoyaki-api
     depends_on:
       - database
     build: ./
     env_file: .env
     ports:
-      - $API_PORT:8080
+      - 3000:8080
     volumes:
-      - takoyaki-app-pipe:/var/run/takoyaki
+      - api-pipe:/var/run/takoyaki
   database:
     container_name: takoyaki-database
     image: postgres:13.1
@@ -19,19 +19,24 @@ services:
     ports:
       - $DB_PORT:$DB_PORT
     volumes:
-      - takoyaki-database-data:/var/lib/postgresql/data
+      - database-data:/var/lib/postgresql/data
     restart: always
     command: -p $DB_PORT
+  frontend:
+    container_name: takoyaki-frontend
+    build: ../takoyaki-frontend
+    ports:
+      - 3001:8080
   proxy:
     container_name: takoyaki-proxy
     depends_on:
-      - app
-      - database
+      - api
+      - frontend
     image: nginx:mainline-alpine
     ports:
       - 8000:80
     volumes:
       - ./dev/proxy:/etc/nginx/templates
 volumes:
-  takoyaki-app-pipe: {}
-  takoyaki-database-data: {}
+  api-pipe: {}
+  database-data: {}
