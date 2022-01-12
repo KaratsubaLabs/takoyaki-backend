@@ -1,0 +1,17 @@
+
+kind: pipeline
+type: docker
+name: default
+
+trigger:
+  branch:
+    - drone
+  event:
+    - push
+
+steps:
+  - name: demo
+    image: busybox
+    commands:
+      - echo hello
+
