@@ -1,4 +1,3 @@
-
 # takoyaki backend
 
 go backend for からつばLABS' **project takoyaki** - the vps platform.
