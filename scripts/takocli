@@ -2,5 +2,5 @@
 
 # pass through script that forwards takoyaki commands to container
 
-docker exec -it takoyaki-app /takoyaki "$@"
+docker exec -it takoyaki-api /takoyaki "$@"
 

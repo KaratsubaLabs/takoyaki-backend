@@ -1,7 +1,7 @@
 #!/bin/sh
 
 api_url='http://localhost:8000/api'
-user_token=''
+user_token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySUQiOjEsImV4cCI6MTY0MTk5MDA3N30.bbBo0eLIMeS4fhzEduljJgGKltXJrgFCPfbZWhWJjpE'
 
 ping() {
     curl -v \

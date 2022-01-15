@@ -57,6 +57,8 @@ func (info routeInfo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		handlerWithMiddleware = AuthMiddleware(handlerWithMiddleware)
 	}
 
+	handlerWithMiddleware = LoggerMiddleware(handlerWithMiddleware)
+
 	handlerWithMiddleware = CorsMiddleware(handlerWithMiddleware)
 
 	// delegate to handler

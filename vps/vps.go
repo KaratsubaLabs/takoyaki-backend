@@ -17,7 +17,7 @@ type OSInfo struct {
 }
 
 var OSOptions = map[string]OSInfo{
-	"ubuntu": OSInfo{ImageFile: "ubuntu-server.img", OSVariant: "ubuntu20.04"},
+	"ubuntu_2004": OSInfo{ImageFile: "ubuntu-server.img", OSVariant: "ubuntu20.04"},
 }
 
 const VolumePoolName = "vps"
@@ -142,7 +142,7 @@ func Create(vmName string, config db.VPSCreateRequestData) error {
 		"--import",
 		"--disk", "vol=" + VolumePoolName + "/" + volumeName,
 		"--disk", "path=" + cidataLocation + ",device=cdrom",
-		"--graphics", "vnc,port=5911,listen=127.0.0.1", // get rid of this later
+		//"--graphics", "vnc,port=5911,listen=127.0.0.1", // get rid of this later
 		"--noautoconsole",
 	}
 	if err := util.RunCommandOnHost(cmd); err != nil {
