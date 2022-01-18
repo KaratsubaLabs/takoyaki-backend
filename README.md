@@ -1,5 +1,4 @@
-
-# takoyaki backend
+# タコヤキ - Takoyaki Backend
 
 go backend for からつばLABS' **project takoyaki** - the vps platform.
 **takoyaki** backend is a go api server that comes with a cli to do some
@@ -70,6 +69,5 @@ $ ./scripts/purge
 - [x] rewrite api
 - [ ] move virt specific commands to host side executable
 - [ ] vps status
-- [ ] possibly dockerize libvirt??
 - [ ] use proper go project structure with cmd/ and pkg/ dirs
 
